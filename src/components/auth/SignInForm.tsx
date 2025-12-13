@@ -92,7 +92,7 @@ export default function SignInForm() {
                 <Input
                   placeholder="you@example.com"
                   type="email"
-                  value={email}
+                  defaultValue={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
                 />
