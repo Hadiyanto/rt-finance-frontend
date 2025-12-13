@@ -58,7 +58,7 @@ export default function EditResidentPage() {
     e.preventDefault();
 
     try {
-      await fetch(`https://rt-finance-backend.onrender.com/residents/${id}`, {
+      await fetch(process.env.NEXT_PUBLIC_API_URL + `/residents/${id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

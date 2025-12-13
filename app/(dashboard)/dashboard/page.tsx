@@ -22,7 +22,7 @@ export default function DashboardPage() {
   useEffect(() => {
     async function loadResidents() {
       try {
-        const res = await fetch("https://rt-finance-backend.onrender.com/residents", {
+        const res = await fetch(process.env.NEXT_PUBLIC_API_URL + "/residents", {
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${localStorage.getItem("token")}`,
