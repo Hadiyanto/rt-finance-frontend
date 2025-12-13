@@ -13,7 +13,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body className="flex bg-gray-50">
 
         {/* Sidebar */}
-        <Sidebar open={menuOpen} onClose={() => setMenuOpen(false)} />
+        <Sidebar />
 
         {/* MAIN CONTENT */}
         <div className="flex-1 md:ml-60 min-h-screen">
