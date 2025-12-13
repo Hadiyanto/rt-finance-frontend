@@ -1,0 +1,19 @@
+import { NextResponse } from "next/server";
+
+export function middleware(req: Request) {
+  const url = new URL(req.url);
+  const cookies = req.headers.get("cookie") || "";
+  const token = cookies.match(/token=([^;]+)/)?.[1];
+
+  const protectedRoutes = ["/dashboard", "/residents"];
+
+  if (!token && protectedRoutes.some((p) => url.pathname.startsWith(p))) {
+    return NextResponse.redirect(new URL("/login", req.url));
+  }
+
+  return NextResponse.next();
+}
+
+export const config = {
+  matcher: ["/dashboard/:path*", "/residents/:path*"],
+};
