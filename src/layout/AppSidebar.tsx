@@ -24,7 +24,7 @@ const navItems: NavItem[] = [
   {
     icon: <GridIcon />,
     name: "Dashboard",
-    subItems: [{ name: "Ecommerce", path: "/", pro: false }],
+    path: "/",
   },
   {
     icon: <ListIcon />,
@@ -253,7 +253,11 @@ const AppSidebar: React.FC = () => {
       </div>
 
       {/* Menu */}
-      <div className="overflow-y-auto no-scrollbar">
+      <div
+        className={`overflow-y-auto no-scrollbar transition-all duration-300
+    ${isMobileOpen ? "pl-5" : ""}
+  `}
+      >
         <nav className="mb-6">
           <div className="flex flex-col gap-4">
             {/* MAIN */}
