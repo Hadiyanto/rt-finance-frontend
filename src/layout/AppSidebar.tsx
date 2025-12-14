@@ -303,7 +303,7 @@ const AppSidebar: React.FC = () => {
             <div>
               {renderMenuItems(
                 othersItems.filter((item) =>
-                  item.name === "Authentication" && isLoggedIn ? false : true
+                  item.name === "Sign In" && isLoggedIn ? false : true
                 ),
                 "others"
               )}
