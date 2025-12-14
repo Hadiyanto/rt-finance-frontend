@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
-import ResidentsTable from "@/components/tables/ResidentsTable";
+import FinancesTable from "@/components/tables/FinancesTable";
 
 export default function ResidentsPage() {
   const [data, setData] = useState([]);
@@ -11,16 +11,10 @@ export default function ResidentsPage() {
   useEffect(() => {
     async function loadResidents() {
       try {
-        const token = localStorage.getItem("token");
-        if (!token) {
-          console.error("No token found");
-          return;
-        }
 
-        const res = await fetch(process.env.NEXT_PUBLIC_API_URL + "/api/residents", {
+        const res = await fetch(process.env.NEXT_PUBLIC_API_URL + "/api/finance", {
           headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json"
           },
         });
 
@@ -40,8 +34,8 @@ export default function ResidentsPage() {
 
   return (
     <div className="p-6">
-      <PageBreadcrumb pageTitle="Residents" />
-      <ResidentsTable data={data} />
+      <PageBreadcrumb pageTitle="Financial Records" />
+      <FinancesTable data={data} />
     </div>
   );
 }

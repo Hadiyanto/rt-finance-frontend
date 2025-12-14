@@ -23,7 +23,7 @@ export default function SignInForm() {
 
     try {
       const response = await fetch(
-        "https://rt-finance-backend.onrender.com/auth/login",
+        process.env.NEXT_PUBLIC_API_URL + "/api/login",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

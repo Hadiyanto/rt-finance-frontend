@@ -33,8 +33,19 @@ const navItems: NavItem[] = [
   },
   {
     icon: <ListIcon />,
+    name: "Transactions",
+    path: "/finances",
+  },
+  {
+    icon: <ListIcon />,
     name: "Submit Contribution",
     path: "/contributions/submit",
+  },
+
+  {
+    icon: <ListIcon />,
+    name: "Submit Transaction",
+    path: "/transaction/submit",
   },
 ];
 
@@ -243,11 +254,11 @@ const AppSidebar: React.FC = () => {
         <Link href="/">
           {isExpanded || isHovered || isMobileOpen ? (
             <>
-              <Image src="/images/logo/logo.svg" alt="Logo" width={150} height={40} className="dark:hidden" />
-              <Image src="/images/logo/logo-dark.svg" alt="Logo" width={150} height={40} className="hidden dark:block" />
+              <Image src="/images/logo/gmmicon.svg" alt="Logo" width={54} height={40} className="dark:hidden" />
+              <Image src="/images/logo/gmmicon.svg" alt="Logo" width={54} height={40} className="hidden dark:block" />
             </>
           ) : (
-            <Image src="/images/logo/logo-icon.svg" alt="Logo" width={32} height={32} />
+            <Image src="/images/logo/gmmicon.svg" alt="Logo" width={32} height={32} />
           )}
         </Link>
       </div>
@@ -270,11 +281,17 @@ const AppSidebar: React.FC = () => {
               </h2>
 
               {renderMenuItems(
-                navItems.filter((item) =>
-                  item.name === "Residents" && !isLoggedIn ? false : true
-                ),
+                navItems.filter((item) => {
+                  const protectedMenus = ["Residents", "Submit Transaction"];
+
+                  if (protectedMenus.includes(item.name) && !isLoggedIn) {
+                    return false; // sembunyikan
+                  }
+                  return true; // tampilkan lainnya
+                }),
                 "main"
               )}
+
             </div>
 
             {/* OTHERS */}
