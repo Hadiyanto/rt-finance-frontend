@@ -52,7 +52,7 @@ const navItems: NavItem[] = [
 const othersItems: NavItem[] = [
   {
     icon: <PlugInIcon />,
-    name: "Authentication",
+    name: "Sign In",
     path: "/signin",
   },
 ];
