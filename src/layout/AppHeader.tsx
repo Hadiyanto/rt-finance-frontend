@@ -82,23 +82,23 @@ const AppHeader: React.FC = () => {
             )}
             {/* Cross Icon */}
           </button>
-
-          <Link href="/" className="lg:hidden">
+          <div className="py-8 flex"></div>
+          {/* <Link href="/" className="lg:hidden">
             <Image
-              width={54}
+              width={32}
               height={32}
               className="dark:hidden"
               src="/images/logo/gmmicon.svg"
               alt="Logo"
             />
             <Image
-              width={54}
+              width={32}
               height={32}
               className="hidden dark:block"
               src="/images/logo/gmmicon.svg"
               alt="Logo"
             />
-          </Link>
+          </Link> */}
 
           <button
             onClick={toggleApplicationMenu}

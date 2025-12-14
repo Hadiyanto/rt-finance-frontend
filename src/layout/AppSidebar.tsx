@@ -249,23 +249,24 @@ const AppSidebar: React.FC = () => {
       onMouseEnter={() => !isExpanded && setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
+      <div className="py-8 flex"></div>
       {/* Logo */}
-      <div className={`py-8 flex ${!isExpanded && !isHovered ? "lg:justify-center" : ""}`}>
-        <Link href="/">
+      {/* <div className={`py-8 flex ${!isExpanded && !isHovered ? "lg:justify-center" : ""}`}> */}
+      {/* <Link href="/">
           {isExpanded || isHovered || isMobileOpen ? (
             <>
-              <Image src="/images/logo/gmmicon.svg" alt="Logo" width={54} height={40} className="dark:hidden" />
-              <Image src="/images/logo/gmmicon.svg" alt="Logo" width={54} height={40} className="hidden dark:block" />
+              <Image src="/images/logo/gmmicon.svg" alt="Logo" width={32} height={32} className="dark:hidden" />
+              <Image src="/images/logo/gmmicon.svg" alt="Logo" width={32} height={32} className="hidden dark:block" />
             </>
           ) : (
             <Image src="/images/logo/gmmicon.svg" alt="Logo" width={32} height={32} />
           )}
-        </Link>
-      </div>
+        </Link> */}
+      {/* </div> */}
 
       {/* Menu */}
       <div
-        className={`overflow-y-auto no-scrollbar transition-all duration-300
+        className={`py-8 flex overflow-y-auto no-scrollbar transition-all duration-300
     ${isMobileOpen ? "pl-5" : ""}
   `}
       >
@@ -274,10 +275,10 @@ const AppSidebar: React.FC = () => {
             {/* MAIN */}
             <div>
               <h2
-                className={`mb-4 text-xs uppercase text-gray-400 flex ${!isExpanded && !isHovered ? "lg:justify-center" : "justify-start"
+                className={`mb-4 text-xs uppercase text-gray-400 flex ${!isExpanded && !isHovered ? "lg:justify-start" : "justify-start"
                   }`}
               >
-                {isExpanded || isHovered || isMobileOpen ? "Menu" : <HorizontaLDots />}
+                {isExpanded || isHovered || isMobileOpen ? "Menu" : "Menu"}
               </h2>
 
               {renderMenuItems(
