@@ -1,28 +1,33 @@
-import type { Metadata } from "next";
-import { EcommerceMetrics } from "@/components/ecommerce/EcommerceMetrics";
-import React from "react";
-import MonthlyTarget from "@/components/ecommerce/MonthlyTarget";
-import MonthlySalesChart from "@/components/ecommerce/MonthlySalesChart";
-import StatisticsChart from "@/components/ecommerce/StatisticsChart";
-import RecentOrders from "@/components/ecommerce/RecentOrders";
-import DemographicCard from "@/components/ecommerce/DemographicCard";
+"use client";
 
-export const metadata: Metadata = {
-  title:
-    "Next.js E-commerce Dashboard | TailAdmin - Next.js Dashboard Template",
-  description: "This is Next.js Home for TailAdmin Dashboard Template",
-};
+import { useEffect, useState } from "react";
+import { validateToken } from "@/utils/auth";
+import ResidentsPage from "@/app/(admin)/(others-pages)/(tables)/residents/page";
+import FormElements from "@/app/(admin)/(others-pages)/(forms)/contributions/submit/page";
 
-export default function Ecommerce() {
-  return (
-    <div className="grid grid-cols-12 gap-4 md:gap-6">
-      <div className="col-span-12 space-y-6 2xl:col-span-8">
-        <EcommerceMetrics />
-      </div>
+export default function HomePage() {
+  const [isValid, setIsValid] = useState<boolean | null>(null);
 
-      <div className="col-span-12 2xl:col-span-8">
-        <RecentOrders />
-      </div>
-    </div>
-  );
+  useEffect(() => {
+    async function check() {
+      const valid = await validateToken();
+      console.log(valid);
+      setIsValid(valid);
+    }
+
+    check();
+  }, []);
+
+  // masih loading validasi token
+  if (isValid === null) {
+    return <p className="p-6">Checking session...</p>;
+  }
+
+  // jika token valid → tampilkan halaman login user
+  if (isValid) {
+    return <ResidentsPage />;
+  }
+
+  // jika token tidak valid → tampilkan halaman guest
+  return <FormElements />;
 }

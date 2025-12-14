@@ -28,11 +28,6 @@ const navItems: NavItem[] = [
   },
   {
     icon: <ListIcon />,
-    name: "Residents",
-    path: "/residents",
-  },
-  {
-    icon: <ListIcon />,
     name: "Transactions",
     path: "/finances",
   },
@@ -46,6 +41,11 @@ const navItems: NavItem[] = [
     icon: <ListIcon />,
     name: "Submit Transaction",
     path: "/transaction/submit",
+  },
+  {
+    icon: <ListIcon />,
+    name: "Residents",
+    path: "/residents",
   },
 ];
 
@@ -282,11 +282,15 @@ const AppSidebar: React.FC = () => {
 
               {renderMenuItems(
                 navItems.filter((item) => {
-                  const protectedMenus = ["Residents", "Submit Transaction"];
+                  const hideGuest = ["Residents", "Submit Transaction", "Submit Contribution"];
+                  const hideLogin = ["Residents"];
 
-                  if (protectedMenus.includes(item.name) && !isLoggedIn) {
+                  if (isLoggedIn && hideLogin.includes(item.name)) {
+                    return false; // sembunyikan
+                  } else if (!isLoggedIn && hideGuest.includes(item.name)) {
                     return false; // sembunyikan
                   }
+
                   return true; // tampilkan lainnya
                 }),
                 "main"
