@@ -3,8 +3,11 @@
 import { useEffect, useState } from "react";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import ResidentsTable from "@/components/tables/ResidentsTable";
+import { useTokenAutoCheck } from "@/hooks/useTokenAutoCheck";
 
 export default function ResidentsPage() {
+  useTokenAutoCheck();
+
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
 
