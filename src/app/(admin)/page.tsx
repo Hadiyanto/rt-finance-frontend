@@ -1,33 +1,25 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { validateToken } from "@/utils/auth";
-import ResidentsPage from "@/app/(admin)/(others-pages)/(tables)/residents/page";
-import FormElements from "@/app/(admin)/(others-pages)/(forms)/contributions/submit/page";
+import { useRouter } from "next/navigation";
 
 export default function HomePage() {
-  const [isValid, setIsValid] = useState<boolean | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     async function check() {
       const valid = await validateToken();
-      console.log(valid);
-      setIsValid(valid);
+
+      if (valid) {
+        router.replace("/residents"); // Logged-in user
+      } else {
+        router.replace("/contributions/submit"); // Guest
+      }
     }
 
     check();
-  }, []);
+  }, [router]);
 
-  // masih loading validasi token
-  if (isValid === null) {
-    return <p className="p-6">Checking session...</p>;
-  }
-
-  // jika token valid → tampilkan halaman login user
-  if (isValid) {
-    return <ResidentsPage />;
-  }
-
-  // jika token tidak valid → tampilkan halaman guest
-  return <FormElements />;
+  return <p className="p-6">Checking session...</p>;
 }
