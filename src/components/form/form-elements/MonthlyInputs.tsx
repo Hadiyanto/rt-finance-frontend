@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import ComponentCard from "../../common/ComponentCard";
 import Label from "../Label";
 import Input from "../input/InputField";
@@ -17,13 +17,8 @@ export default function MonthlyInputs() {
   const [loading, setLoading] = useState(false);
   const [fileKey, setFileKey] = useState(Date.now());
 
-  const blockOptions = [
-    { value: "A1", label: "A1" },
-    { value: "A2", label: "A2" },
-    { value: "A3", label: "A3" },
-    { value: "A4", label: "A4" },
-    { value: "B1", label: "B1" },
-  ];
+  const [blockOptions, setBlockOptions] = useState<{ value: string; label: string }[]>([]);
+  const [houseOptions, setHouseOptions] = useState<{ value: string; label: string }[]>([]);
 
   const monthOptions = [
     // 2025
@@ -43,6 +38,37 @@ export default function MonthlyInputs() {
     { value: "2026-11", label: "November 2026" },
     { value: "2026-12", label: "December 2026" },
   ];
+
+  useEffect(() => {
+    fetch(process.env.NEXT_PUBLIC_API_URL + "/api/blocks")
+      .then((res) => res.json())
+      .then((data) => {
+        setBlockOptions(
+          data.blocks.map((b: string) => ({
+            value: b,
+            label: b,
+          }))
+        );
+      })
+      .catch(console.error);
+  }, []);
+
+  // FETCH HOUSE NUMBERS BASED ON BLOCK
+  useEffect(() => {
+    if (!block) return;
+
+    fetch(process.env.NEXT_PUBLIC_API_URL + `/api/houses-number?block=${block}`)
+      .then((res) => res.json())
+      .then((data) =>
+        setHouseOptions(
+          data.map((num: string) => ({
+            value: num,
+            label: num,
+          }))
+        )
+      )
+      .catch(console.error);
+  }, [block]);
 
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -110,7 +136,10 @@ export default function MonthlyInputs() {
               options={blockOptions}
               value={block}
               placeholder="Select block"
-              onChange={setBlock}
+              onChange={(v) => {
+                setBlock(v);
+                setNumber(""); // clear number
+              }}
               className="dark:bg-dark-900"
             />
             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">
@@ -120,14 +149,19 @@ export default function MonthlyInputs() {
         </div>
 
         {/* House Number */}
-        <div>
-          <Label>House Number</Label>
-          <Input
-            type="text"
-            placeholder="Enter house number"
+        <Label>House Number</Label>
+        <div className="relative">
+          <Select
+            options={houseOptions}
             value={number}
-            onChange={(e) => setNumber(e.target.value)}
+            placeholder={block ? "Select house number" : "Pick block first"}
+            onChange={setNumber}
+            className="dark:bg-dark-900"
+            disabled={!block}
           />
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">
+            <ChevronDownIcon />
+          </span>
         </div>
 
         {/* Month */}
@@ -166,6 +200,6 @@ export default function MonthlyInputs() {
           </Button>
         </div>
       </div>
-    </ComponentCard>
+    </ComponentCard >
   );
 }
