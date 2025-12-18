@@ -19,6 +19,7 @@ export default function MonthlyInputs() {
   const [month, setMonth] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
+  const [amount, setAmount] = useState("");
 
   const blockOptions = [
     { value: "A1", label: "A1" },
@@ -96,7 +97,7 @@ export default function MonthlyInputs() {
   };
 
   return (
-    <ComponentCard title="Payment Entry">
+    <ComponentCard title="">
       <div className="space-y-6">
 
         {/* Block */}
@@ -127,14 +128,24 @@ export default function MonthlyInputs() {
           />
         </div>
 
-        {/* Name */}
+        {/* Amount */}
         <div>
-          <Label>Name</Label>
+          <Label>Amount</Label>
           <Input
-            type="text"
-            placeholder="Resident name"
-            defaultValue={name}
-            onChange={(e) => setName(e.target.value)}
+            type="number"
+            list="amount-list"
+            placeholder="Amount"
+            defaultValue={amount}
+            onChange={(e) => {
+              const val = e.target.value;
+              if (/^[0-9]*$/.test(val)) setAmount(val);
+            }}
+            onKeyDown={(e) => {
+              if ([".", ",", "e", "-"].includes(e.key)) {
+                e.preventDefault();
+              }
+            }}
+            inputMode="numeric"
           />
         </div>
 

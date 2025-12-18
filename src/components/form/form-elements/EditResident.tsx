@@ -1,11 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import { useEffect, useState } from "react";
 import ComponentCard from "../../common/ComponentCard";
 import Label from "../Label";
 import Input from "../input/InputField";
 import Select from "../Select";
-import FileInput from "../input/FileInput";
 import Button from "@/components/ui/button/Button";
 import { ChevronDownIcon } from "../../../icons";
 
@@ -19,20 +18,18 @@ export default function EditResident() {
   const [note, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const blockOptions = [
-    { value: "A1", label: "A1" },
-    { value: "A2", label: "A2" },
-    { value: "A3", label: "A3" },
-    { value: "A4", label: "A4" },
-    { value: "B1", label: "B1" },
-  ];
 
-  const monthOptions = [
-    { value: "2025-01", label: "January 2025" },
-    { value: "2025-02", label: "February 2025" },
-    { value: "2025-03", label: "March 2025" },
-    { value: "2025-04", label: "April 2025" },
-  ];
+  useEffect(() => {
+    const raw = localStorage.getItem("editResident");
+    if (raw) {
+
+      const parseRes = JSON.parse(raw)
+      setBlock(parseRes.block);
+      setNumber(parseRes.houseNumber);
+      setName(parseRes.fullName);
+      setNotes(parseRes.notes);
+    }
+  }, []);
 
   // ============================================
   // SUBMIT HANDLER
@@ -68,11 +65,6 @@ export default function EditResident() {
 
       alert("Payment submitted successfully!");
 
-      // Reset form
-      setBlock("");
-      setNumber("");
-      setName("");
-      setNotes("");
     } catch (err) {
       console.error(err);
       alert("Error submitting payment.");
@@ -82,24 +74,19 @@ export default function EditResident() {
   };
 
   return (
-    <ComponentCard title="Payment Entry">
+    <ComponentCard title="">
       <div className="space-y-6">
 
         {/* Block */}
         <div>
-          <Label>Block</Label>
-          <div className="relative">
-            <Select
-              options={blockOptions}
-              defaultValue={block}
-              placeholder="Select block"
-              onChange={setBlock}
-              className="dark:bg-dark-900"
-            />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">
-              <ChevronDownIcon />
-            </span>
-          </div>
+          <Label>House Block</Label>
+          <Input
+            type="text"
+            placeholder="Enter house number"
+            defaultValue={block}
+            onChange={(e) => setNumber(e.target.value)}
+            disabled
+          />
         </div>
 
         {/* House Number */}
@@ -110,6 +97,7 @@ export default function EditResident() {
             placeholder="Enter house number"
             defaultValue={number}
             onChange={(e) => setNumber(e.target.value)}
+            disabled
           />
         </div>
 
@@ -130,7 +118,7 @@ export default function EditResident() {
           <Input
             type="text"
             placeholder="Notes"
-            defaultValue={name}
+            defaultValue={note}
             onChange={(e) => setNotes(e.target.value)}
           />
         </div>
@@ -145,7 +133,7 @@ export default function EditResident() {
             onClick={handleSubmit}
             disabled={loading}
           >
-            {loading ? "Submitting..." : "Submit Payment"}
+            {loading ? "Submitting..." : "Update Payment"}
           </Button>
         </div>
       </div>

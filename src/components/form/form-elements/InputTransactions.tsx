@@ -99,7 +99,7 @@ export default function InputTransactions() {
   }));
 
   return (
-    <ComponentCard title="Finance Transaction Entry">
+    <ComponentCard title="">
       <div className="space-y-6">
 
         {/* Amount */}

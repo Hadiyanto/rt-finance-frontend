@@ -86,7 +86,10 @@ export default function ResidentsTable({ data }: { data: Resident[] }) {
 
                   <TableCell className="px-5 py-4">
                     <Link
-                      href={`/residents/${item.id}`}
+                      href={`/residents/edit`}
+                      onClick={() => {
+                        localStorage.setItem("editResident", JSON.stringify(item));
+                      }}
                       className="text-sm text-blue-600 hover:underline"
                     >
                       Edit
