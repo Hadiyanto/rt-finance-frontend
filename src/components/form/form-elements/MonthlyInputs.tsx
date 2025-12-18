@@ -10,16 +10,12 @@ import Button from "@/components/ui/button/Button";
 import { ChevronDownIcon } from "../../../icons";
 
 export default function MonthlyInputs() {
-  // ============================================
-  // FIELD STATE
-  // ============================================
   const [block, setBlock] = useState("");
   const [number, setNumber] = useState("");
-  const [name, setName] = useState("");
   const [month, setMonth] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
-  const [amount, setAmount] = useState("");
+  const [fileKey, setFileKey] = useState(Date.now());
 
   const blockOptions = [
     { value: "A1", label: "A1" },
@@ -30,25 +26,32 @@ export default function MonthlyInputs() {
   ];
 
   const monthOptions = [
-    { value: "2025-01", label: "January 2025" },
-    { value: "2025-02", label: "February 2025" },
-    { value: "2025-03", label: "March 2025" },
-    { value: "2025-04", label: "April 2025" },
+    // 2025
+    { value: "2025-12", label: "December 2025" },
+
+    // 2026
+    { value: "2026-01", label: "January 2026" },
+    { value: "2026-02", label: "February 2026" },
+    { value: "2026-03", label: "March 2026" },
+    { value: "2026-04", label: "April 2026" },
+    { value: "2026-05", label: "May 2026" },
+    { value: "2026-06", label: "June 2026" },
+    { value: "2026-07", label: "July 2026" },
+    { value: "2026-08", label: "August 2026" },
+    { value: "2026-09", label: "September 2026" },
+    { value: "2026-10", label: "October 2026" },
+    { value: "2026-11", label: "November 2026" },
+    { value: "2026-12", label: "December 2026" },
   ];
 
-  // ============================================
-  // FILE INPUT HANDLER
-  // ============================================
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (f) setFile(f);
   };
 
-  // ============================================
-  // SUBMIT HANDLER
-  // ============================================
   const handleSubmit = async () => {
-    if (!block || !number || !name || !month) {
+    if (!block || !number || !month) {
       alert("Please fill in all required fields.");
       return;
     }
@@ -58,16 +61,15 @@ export default function MonthlyInputs() {
     try {
       const form = new FormData();
       form.append("block", block);
-      form.append("number", number);
-      form.append("name", name);
-      form.append("month", month);
+      form.append("houseNumber", number);
+      form.append("date", month); // YYYY-MM → backend akan convert
 
       if (file) {
-        form.append("file", file);
+        form.append("image", file);
       }
 
       const res = await fetch(
-        process.env.NEXT_PUBLIC_API_URL + "/payment-entry",
+        process.env.NEXT_PUBLIC_API_URL + "/api/monthly-fee",
         {
           method: "POST",
           body: form,
@@ -85,9 +87,9 @@ export default function MonthlyInputs() {
       // Reset form
       setBlock("");
       setNumber("");
-      setName("");
       setMonth("");
       setFile(null);
+      setFileKey(Date.now());
     } catch (err) {
       console.error(err);
       alert("Error submitting payment.");
@@ -106,7 +108,7 @@ export default function MonthlyInputs() {
           <div className="relative">
             <Select
               options={blockOptions}
-              defaultValue={block}
+              value={block}
               placeholder="Select block"
               onChange={setBlock}
               className="dark:bg-dark-900"
@@ -123,29 +125,8 @@ export default function MonthlyInputs() {
           <Input
             type="text"
             placeholder="Enter house number"
-            defaultValue={number}
+            value={number}
             onChange={(e) => setNumber(e.target.value)}
-          />
-        </div>
-
-        {/* Amount */}
-        <div>
-          <Label>Amount</Label>
-          <Input
-            type="number"
-            list="amount-list"
-            placeholder="Amount"
-            defaultValue={amount}
-            onChange={(e) => {
-              const val = e.target.value;
-              if (/^[0-9]*$/.test(val)) setAmount(val);
-            }}
-            onKeyDown={(e) => {
-              if ([".", ",", "e", "-"].includes(e.key)) {
-                e.preventDefault();
-              }
-            }}
-            inputMode="numeric"
           />
         </div>
 
@@ -155,7 +136,7 @@ export default function MonthlyInputs() {
           <div className="relative">
             <Select
               options={monthOptions}
-              defaultValue={month}
+              value={month}
               placeholder="Select month"
               onChange={setMonth}
               className="dark:bg-dark-900"
@@ -168,11 +149,9 @@ export default function MonthlyInputs() {
 
         {/* File upload */}
         <div>
-          <Label>Upload File (optional)</Label>
-          <FileInput onChange={handleFileChange} />
-          {file && (
-            <p className="mt-1 text-sm text-gray-600">{file.name}</p>
-          )}
+          <Label>Upload Transfer Proof (optional)</Label>
+          <FileInput key={fileKey} onChange={handleFileChange} />
+          {file && <p className="mt-1 text-sm text-gray-600">{file.name}</p>}
         </div>
 
         {/* Submit button */}
