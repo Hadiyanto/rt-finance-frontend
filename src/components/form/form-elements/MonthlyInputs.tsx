@@ -74,6 +74,26 @@ export default function MonthlyInputs() {
     </div>
   );
 
+  async function uploadToCloudinary(file: File) {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_PRESET!);
+
+    const res = await fetch(
+      `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,
+      {
+        method: "POST",
+        body: formData,
+      }
+    );
+
+    if (!res.ok) {
+      throw new Error("Cloudinary upload failed");
+    }
+
+    return res.json(); // { secure_url, public_id }
+  }
+
   const handleSubmit = async () => {
     if (!block || !number || !month) {
       alert("Please fill in all required fields.");
@@ -81,20 +101,32 @@ export default function MonthlyInputs() {
     }
 
     setLoading(true);
+    let imageUrl = null;
 
     try {
+      if (file) {
+        const uploaded = await uploadToCloudinary(file);
+        imageUrl = uploaded.secure_url;
+      }
+
       const form = new FormData();
       form.append("block", block);
       form.append("houseNumber", number);
       form.append("date", month);
 
-      if (file) form.append("image", file);
+      if (imageUrl) form.append("image", imageUrl);
 
       const res = await fetch(
-        process.env.NEXT_PUBLIC_API_URL + "/api/monthly-fee",
+        process.env.NEXT_PUBLIC_API_URL + "/api/monthly-fee-manual",
         {
           method: "POST",
-          body: form,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            block,
+            houseNumber: number,
+            date: month,
+            imageUrl: imageUrl,
+          }),
         }
       );
 

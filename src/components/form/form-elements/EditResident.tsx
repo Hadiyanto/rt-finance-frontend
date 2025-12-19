@@ -4,9 +4,7 @@ import { useEffect, useState } from "react";
 import ComponentCard from "../../common/ComponentCard";
 import Label from "../Label";
 import Input from "../input/InputField";
-import Select from "../Select";
 import Button from "@/components/ui/button/Button";
-import { ChevronDownIcon } from "../../../icons";
 
 export default function EditResident() {
   // ============================================
@@ -17,10 +15,17 @@ export default function EditResident() {
   const [name, setName] = useState("");
   const [note, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
+  const [token, setToken] = useState("");
+
 
 
   useEffect(() => {
     const raw = localStorage.getItem("editResident");
+    const currentToken = localStorage.getItem("token")
+    if (currentToken) {
+      setToken(currentToken);
+    }
+
     if (raw) {
 
       const parseRes = JSON.parse(raw)
@@ -50,10 +55,14 @@ export default function EditResident() {
       form.append("month", note);
 
       const res = await fetch(
-        process.env.NEXT_PUBLIC_API_URL + "/payment-entry",
+        process.env.NEXT_PUBLIC_API_URL + "/api/residents/" + block + "/" + number,
         {
-          method: "POST",
-          body: form,
+          method: "PUT",
+          headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+          body: JSON.stringify({
+            fullName: name,
+            notes: note,
+          }),
         }
       );
 
@@ -63,11 +72,11 @@ export default function EditResident() {
         throw new Error(json.message || "Failed to submit");
       }
 
-      alert("Payment submitted successfully!");
+      alert("Update successfully!");
 
     } catch (err) {
       console.error(err);
-      alert("Error submitting payment.");
+      alert("Error update.");
     } finally {
       setLoading(false);
     }
@@ -84,7 +93,7 @@ export default function EditResident() {
             type="text"
             placeholder="Enter house number"
             defaultValue={block}
-            onChange={(e) => setNumber(e.target.value)}
+            onChange={(e) => setBlock(e.target.value)}
             disabled
           />
         </div>
