@@ -95,8 +95,8 @@ export default function MonthlyInputs() {
   }
 
   const handleSubmit = async () => {
-    if (!block || !number || !month) {
-      alert("Please fill in all required fields.");
+    if (!block || !number || !month || !file) {
+      alert("Please fill in all required fields, including the transfer proof.");
       return;
     }
 
@@ -212,7 +212,7 @@ export default function MonthlyInputs() {
 
           {/* File Upload */}
           <div>
-            <Label>Upload Transfer Proof (optional)</Label>
+            <Label>Upload Transfer Proof</Label>
             <FileInput key={fileKey} onChange={handleFileChange} />
             {file && <p className="mt-1 text-sm text-gray-600">{file.name}</p>}
           </div>
