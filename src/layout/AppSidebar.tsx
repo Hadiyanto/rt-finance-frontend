@@ -95,8 +95,8 @@ const AppSidebar: React.FC = () => {
 
   // Detect login
   useEffect(() => {
-    const user = localStorage.getItem("user");
-    setIsLoggedIn(!!user);
+    const token = localStorage.getItem("token");
+    setIsLoggedIn(!!token);
   }, []);
 
   // Determine menu for user

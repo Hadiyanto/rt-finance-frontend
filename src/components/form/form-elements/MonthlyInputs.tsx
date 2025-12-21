@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import ComponentCard from "../../common/ComponentCard";
 import Label from "../Label";
 import Select from "../Select";
+import Input from "../input/InputField";
 import FileInput from "../input/FileInput";
 import Button from "@/components/ui/button/Button";
 import { ChevronDownIcon } from "../../../icons";
@@ -12,6 +13,8 @@ export default function MonthlyInputs() {
   const [block, setBlock] = useState("");
   const [number, setNumber] = useState("");
   const [month, setMonth] = useState("");
+  const [name, setName] = useState("");
+  const [notes, setNotes] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [fileKey, setFileKey] = useState(Date.now());
@@ -74,6 +77,17 @@ export default function MonthlyInputs() {
     </div>
   );
 
+  async function toTitleCase(value: string): Promise<string> {
+    if (!value) return ''
+
+    return value
+      .toLowerCase()
+      .split(' ')
+      .filter(Boolean)
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ')
+  }
+
   async function uploadToCloudinary(file: File) {
     const formData = new FormData();
     formData.append("file", file);
@@ -95,7 +109,7 @@ export default function MonthlyInputs() {
   }
 
   const handleSubmit = async () => {
-    if (!block || !number || !month || !file) {
+    if (!block || !number || !month || !file || !name) {
       alert("Please fill in all required fields, including the transfer proof.");
       return;
     }
@@ -193,6 +207,18 @@ export default function MonthlyInputs() {
             </div>
           </div>
 
+          {/* Name */}
+          <div>
+            <Label>Name</Label>
+            <Input
+              type="text"
+              placeholder="Enter name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onBlur={async (e) => setName(await toTitleCase(e.target.value))}
+            />
+          </div>
+
           {/* Month */}
           <div>
             <Label>Select Month</Label>
@@ -208,6 +234,17 @@ export default function MonthlyInputs() {
                 <ChevronDownIcon />
               </span>
             </div>
+          </div>
+
+          {/* Notes */}
+          <div>
+            <Label>Notes (optional)</Label>
+            <Input
+              type="text"
+              placeholder="Contoh: Untuk pembayaran bulan Nov Des 2025 atau Iuran + THR"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+            />
           </div>
 
           {/* File Upload */}
