@@ -42,6 +42,11 @@ export const guestMenu: NavItem[] = [
     name: "Pay Monthly Fee",
     path: "/contributions/submit",
   },
+  // {
+  //   icon: <ListIcon />,
+  //   name: "Monthly Fee Report",
+  //   path: "/monthly",
+  // },
   {
     icon: <ReceiptText />,
     name: "Transactions",
@@ -64,6 +69,11 @@ export const userMenu: NavItem[] = [
     icon: <CalendarCheck />,
     name: "Pay Monthly Fee",
     path: "/contributions/submit",
+  },
+  {
+    icon: <ListIcon />,
+    name: "Monthly Fee Report",
+    path: "/monthly",
   },
   {
     icon: <ListIcon />,
