@@ -5,6 +5,19 @@ import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import MonthlyFeeBreakdownTable from "@/components/tables/MonthlyFee";
 import { useTokenAutoCheck } from "@/hooks/useTokenAutoCheck";
 
+interface BreakdownRow {
+  block: string;
+  houseNumber: string;
+  fullName: string;
+  kasRT: number | null;
+  agamaRT: number | null;
+  sampah: number | null;
+  keamanan: number | null;
+  agamaRW: number | null;
+  kasRW: number | null;
+  kkmRW: number | null;
+}
+
 export default function MonthlyFeeBreakdownPage() {
   useTokenAutoCheck();
 
@@ -17,8 +30,9 @@ export default function MonthlyFeeBreakdownPage() {
 
   const [year, setYear] = useState(currentYear.toString());
   const [month, setMonth] = useState(currentMonth);
-  const [data, setData] = useState([]);
+  const [data, setData] = useState<BreakdownRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [block, setBlock] = useState<string>(""); // "" = all block
 
   useEffect(() => {
     async function loadBreakdown() {
@@ -43,6 +57,9 @@ export default function MonthlyFeeBreakdownPage() {
     loadBreakdown();
   }, [year, month]);
 
+  const filteredData = block
+    ? data.filter((item) => item.block === block)
+    : data;
   return (
     <div className="p-6 space-y-6">
       <PageBreadcrumb pageTitle="Monthly Fee Breakdown" />
@@ -75,13 +92,26 @@ export default function MonthlyFeeBreakdownPage() {
             </option>
           ))}
         </select>
+
+        <select
+          value={block}
+          onChange={(e) => setBlock(e.target.value)}
+          className="border rounded-lg px-3 py-2 text-sm"
+        >
+          <option value="">All Blocks</option>
+          <option value="A1">A1</option>
+          <option value="A2">A2</option>
+          <option value="A3">A3</option>
+          <option value="A4">A4</option>
+          <option value="B1">B1</option>
+        </select>
       </div>
 
       {/* TABLE */}
       {loading ? (
         <p>Loading...</p>
       ) : (
-        <MonthlyFeeBreakdownTable data={data} year={year} month={month} />
+        <MonthlyFeeBreakdownTable data={filteredData} year={year} month={month} />
       )}
     </div>
   );
