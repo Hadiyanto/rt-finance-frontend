@@ -60,7 +60,23 @@ export default function MonthlyFeeBreakdownPage() {
   const filteredData = block
     ? data.filter((item) => item.block === block)
     : data;
+
+  const sumNumber = (
+    rows: BreakdownRow[],
+    key: keyof BreakdownRow
+  ): number =>
+    rows.reduce((acc, r) => acc + (Number(r[key]) || 0), 0);
+
+  const totalKasRT = sumNumber(filteredData, "kasRT");
+  const totalAgamaRT = sumNumber(filteredData, "agamaRT");
+  const totalSampah = sumNumber(filteredData, "sampah");
+  const totalKeamanan = sumNumber(filteredData, "keamanan");
+  const totalAgamaRW = sumNumber(filteredData, "agamaRW");
+  const totalKasRW = sumNumber(filteredData, "kasRW");
+  const totalKKM = sumNumber(filteredData, "kkmRW");
+
   return (
+
     <div className="p-6 space-y-6">
       <PageBreadcrumb pageTitle="Monthly Fee Breakdown" />
 

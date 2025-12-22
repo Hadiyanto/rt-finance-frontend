@@ -155,6 +155,24 @@ export default function MonthlyFeeBreakdownTable({
     doc.save(`monthly-fee-breakdown-${year}-${month}.pdf`);
   };
 
+  const sumNumber = (
+    rows: BreakdownRow[],
+    key: keyof BreakdownRow
+  ): number =>
+    rows.reduce((acc, r) => acc + (Number(r[key]) || 0), 0);
+
+  const totalKasRT = sumNumber(safeData, "kasRT");
+  const totalAgamaRT = sumNumber(safeData, "agamaRT");
+  const totalSampah = sumNumber(safeData, "sampah");
+  const totalKeamanan = sumNumber(safeData, "keamanan");
+  const totalAgamaRW = sumNumber(safeData, "agamaRW");
+  const totalKasRW = sumNumber(safeData, "kasRW");
+  const totalKkmRW = sumNumber(safeData, "kkmRW");
+
+  const totalKasRtPlusAgamaRt = totalKasRT + totalAgamaRT;
+  const totalKeamananPlusRw =
+    totalKeamanan + totalAgamaRW + totalKasRW;
+
   /* ======================
    * RENDER
    * ====================== */
@@ -255,6 +273,58 @@ export default function MonthlyFeeBreakdownTable({
                 </TableRow>
               ))}
 
+              {/* TOTAL ROW */}
+              <TableRow className="bg-gray-100 font-semibold dark:bg-white/[0.06] text-center border-t-2 border-b-1 border-black">
+                <TableCell colSpan={3} className="px-5 py-4 border-black">TOTAL PER POS IURAN</TableCell>
+                {/* <TableCell className="px-5 py-4"> </TableCell>
+                <TableCell className="px-5 py-4"> </TableCell> */}
+                <TableCell className="px-5 py-4 border-1 border-black">
+                  {totalKasRT.toLocaleString("id-ID")}
+                </TableCell>
+                <TableCell className="px-5 py-4 border-1 border-black">
+                  {totalAgamaRT.toLocaleString("id-ID")}
+                </TableCell>
+                <TableCell className="px-5 py-4 border-1 border-black">
+                  {totalSampah.toLocaleString("id-ID")}
+                </TableCell>
+                <TableCell className="px-5 py-4 border-1 border-black">
+                  {totalKeamanan.toLocaleString("id-ID")}
+                </TableCell>
+                <TableCell className="px-5 py-4 border-1 border-black">
+                  {totalAgamaRW.toLocaleString("id-ID")}
+                </TableCell>
+                <TableCell className="px-5 py-4 border-1 border-black">
+                  {totalKasRW.toLocaleString("id-ID")}
+                </TableCell>
+                <TableCell className="px-5 py-4">
+                  {totalKkmRW.toLocaleString("id-ID")}
+                </TableCell>
+              </TableRow>
+
+              <TableRow className={`bg-gray-100 font-semibold dark:bg-white/[0.06] font-bold text-center border-b-1 border-black`}>
+                {/* KAS RT + AGAMA RT */}
+                <TableCell colSpan={3} className="px-5 py-4">REKAP TOTAL IURAN</TableCell>
+                {/* <TableCell className="px-5 py-4"> </TableCell>
+                <TableCell className="px-5 py-4"> </TableCell> */}
+                <TableCell colSpan={2} className={`bg-gray-100 font-semibold dark:bg-white/[0.06] text-lg border-1 border-black`}>
+                  {totalKasRtPlusAgamaRt.toLocaleString("id-ID")}
+                </TableCell>
+
+                {/* SAMPAH */}
+                <TableCell className={`bg-gray-100 font-semibold dark:bg-white/[0.06] text-lg border-1 border-black`}>
+                  {totalSampah.toLocaleString("id-ID")}
+                </TableCell>
+
+                {/* KEAMANAN + AGAMA RW + KAS RW */}
+                <TableCell colSpan={3} className={`bg-gray-100 font-semibold dark:bg-white/[0.06] text-lg border-1 border-black`}>
+                  {totalKeamananPlusRw.toLocaleString("id-ID")}
+                </TableCell>
+
+                {/* KKM-RW */}
+                <TableCell className={`bg-gray-100 font-semibold dark:bg-white/[0.06] text-lg`}>
+                  {totalKkmRW.toLocaleString("id-ID")}
+                </TableCell>
+              </TableRow>
               {safeData.length === 0 && (
                 <TableRow>
                   {Array.from({ length: 10 }).map((_, i) => (
