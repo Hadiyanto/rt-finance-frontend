@@ -51,6 +51,18 @@ export default function MonthlyInputs() {
     { value: "2026-12", label: "December 2026" },
   ];
 
+  function mapMonthlyFeeError(code?: string) {
+    console.log(code);
+    switch (code) {
+      case "MONTHLY_FEE_ALREADY_SUBMITTED":
+        return "Iuran bulan ini sudah pernah disubmit. Silakan hubungi pengurus RT jika perlu koreksi.";
+      case "DEFERRED_ACTIVE":
+        return "Iuran bulan ini sudah termasuk pembayaran di muka (deferred).";
+      default:
+        return "Gagal mengirim iuran. Silakan coba lagi atau hubungi pengurus RT.";
+    }
+  }
+
   // Fetch block + house list (single endpoint)
   useEffect(() => {
     fetch(process.env.NEXT_PUBLIC_API_URL + "/api/block-houses")
@@ -118,18 +130,30 @@ export default function MonthlyInputs() {
     let imageUrl = null;
 
     try {
+      // Check if the payment is already submitted
+      const resCheck = await fetch(
+        process.env.NEXT_PUBLIC_API_URL + "/api/monthly-fee-validate",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            block,
+            houseNumber: number,
+            date: month,
+          }),
+        }
+      );
+
+      const jsonValidate = await resCheck.json();
+
+      if (!resCheck.ok) {
+        throw new Error(jsonValidate?.code);
+      }
+
       if (file) {
         const uploaded = await uploadToCloudinary(file);
         imageUrl = uploaded.secure_url;
       }
-
-      // const form = new FormData();
-      // form.append("block", block);
-      // form.append("houseNumber", number);
-      // form.append("date", month);
-      // form.append("name", name);
-
-      // if (imageUrl) form.append("image", imageUrl);
 
       const res = await fetch(
         process.env.NEXT_PUBLIC_API_URL + "/api/monthly-fee-manual",
@@ -147,7 +171,10 @@ export default function MonthlyInputs() {
       );
 
       const json = await res.json();
-      if (!res.ok) throw new Error(json.message);
+
+      if (!res.ok) {
+        throw new Error(json?.code);
+      }
 
       alert("Payment submitted successfully!");
 
@@ -161,7 +188,7 @@ export default function MonthlyInputs() {
 
     } catch (err) {
       console.error(err);
-      alert("Error submitting payment.");
+      alert(mapMonthlyFeeError((err as Error)?.message));
     } finally {
       setLoading(false);
     }
