@@ -47,11 +47,11 @@ export const guestMenu: NavItem[] = [
   //   name: "Monthly Fee Report",
   //   path: "/monthly",
   // },
-  {
-    icon: <ReceiptText />,
-    name: "Transactions",
-    path: "/finances",
-  },
+  // {
+  //   icon: <ReceiptText />,
+  //   name: "Transactions",
+  //   path: "/finances",
+  // },
 ];
 
 export const userMenu: NavItem[] = [
