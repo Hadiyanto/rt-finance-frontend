@@ -56,6 +56,24 @@ export default function MonthlyFeeBreakdownTable({
 }: Props) {
   const safeData = Array.isArray(data) ? data : [];
 
+  const sumNumber = (
+    rows: BreakdownRow[],
+    key: keyof BreakdownRow
+  ): number =>
+    rows.reduce((acc, r) => acc + (Number(r[key]) || 0), 0);
+
+  const totalKasRT = sumNumber(safeData, "kasRT");
+  const totalAgamaRT = sumNumber(safeData, "agamaRT");
+  const totalSampah = sumNumber(safeData, "sampah");
+  const totalKeamanan = sumNumber(safeData, "keamanan");
+  const totalAgamaRW = sumNumber(safeData, "agamaRW");
+  const totalKasRW = sumNumber(safeData, "kasRW");
+  const totalKkmRW = sumNumber(safeData, "kkmRW");
+
+  const totalKasRtPlusAgamaRt = totalKasRT + totalAgamaRT;
+  const totalKeamananPlusRw =
+    totalKeamanan + totalAgamaRW + totalKasRW;
+
   /* ======================
    * CSV DOWNLOAD
    * ====================== */
@@ -86,8 +104,38 @@ export default function MonthlyFeeBreakdownTable({
       r.kkmRW ?? "",
     ]);
 
+    // 🔹 TOTAL PER POS IURAN
+    const totalPerPosRow = [
+      "TOTAL PER POS IURAN",
+      "",
+      "",
+      totalKasRT,
+      totalAgamaRT,
+      totalSampah,
+      totalKeamanan,
+      totalAgamaRW,
+      totalKasRW,
+      totalKkmRW,
+    ];
+
+    // 🔹 REKAP TOTAL IURAN
+    const rekapTotalRow = [
+      "REKAP TOTAL IURAN",
+      "",
+      "",
+      totalKasRtPlusAgamaRt,
+      "",
+      totalSampah,
+      totalKeamananPlusRw,
+      "",
+      "",
+      totalKkmRW,
+    ];
+
     const csv =
-      [header, ...rows].map((row) => row.join(",")).join("\n");
+      [header, ...rows, totalPerPosRow, rekapTotalRow]
+        .map((row) => row.join(","))
+        .join("\n");
 
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -100,6 +148,8 @@ export default function MonthlyFeeBreakdownTable({
     URL.revokeObjectURL(url);
   };
 
+
+
   /* ======================
    * PDF DOWNLOAD
    * ====================== */
@@ -110,10 +160,14 @@ export default function MonthlyFeeBreakdownTable({
     doc.text("Laporan Iuran Graha Mampang Mas RT 001", 14, 12);
 
     doc.setFontSize(10);
-    doc.text(`Period: ${month}/${year}`, 14, 18);
+    doc.text(`Periode: ${month}/${year}`, 14, 18);
+
+    const YELLOW_TOTAL: [number, number, number] = [255, 245, 204];
+    const YELLOW_RECAP: [number, number, number] = [255, 239, 186];
 
     autoTable(doc, {
       startY: 22,
+      theme: "grid",
       head: [[
         "Block",
         "No",
@@ -126,52 +180,97 @@ export default function MonthlyFeeBreakdownTable({
         "KAS RW",
         "KKM-RW",
       ]],
-      body: safeData.map((r) => [
-        r.block,
-        r.houseNumber,
-        toTitleCase(r.fullName),
-        r.kasRT ?? "-",
-        r.agamaRT ?? "-",
-        r.sampah ?? "-",
-        r.keamanan ?? "-",
-        r.agamaRW ?? "-",
-        r.kasRW ?? "-",
-        r.kkmRW ?? "-",
-      ]),
+
+      body: [
+        // =====================
+        // DATA WARGA
+        // =====================
+        ...safeData.map((r) => [
+          r.block,
+          r.houseNumber,
+          toTitleCase(r.fullName),
+          r.kasRT ?? "-",
+          r.agamaRT ?? "-",
+          r.sampah ?? "-",
+          r.keamanan ?? "-",
+          r.agamaRW ?? "-",
+          r.kasRW ?? "-",
+          r.kkmRW ?? "-",
+        ]),
+
+        // =====================
+        // TOTAL PER POS IURAN
+        // =====================
+        [
+          { content: "TOTAL PER POS IURAN", colSpan: 3, styles: { halign: "left" } },
+          totalKasRT,
+          totalAgamaRT,
+          totalSampah,
+          totalKeamanan,
+          totalAgamaRW,
+          totalKasRW,
+          totalKkmRW,
+        ],
+
+        // =====================
+        // REKAP TOTAL IURAN (MERGE)
+        // =====================
+        [
+          { content: "REKAP TOTAL IURAN", colSpan: 3, styles: { halign: "left" } },
+
+          // KAS RT + AGAMA RT
+          {
+            content: totalKasRtPlusAgamaRt.toLocaleString("id-ID"),
+            colSpan: 2,
+            styles: { halign: "center" },
+          },
+
+          // SAMPAH
+          totalSampah.toLocaleString("id-ID"),
+
+          // KEAMANAN + AGAMA RW + KAS RW
+          {
+            content: totalKeamananPlusRw.toLocaleString("id-ID"),
+            colSpan: 3,
+            styles: { halign: "center" },
+          },
+
+          // KKM-RW
+          totalKkmRW.toLocaleString("id-ID"),
+        ],
+      ],
+
       styles: {
         fontSize: 9,
         cellPadding: 3,
       },
+
       headStyles: {
         fillColor: [240, 240, 240],
         textColor: 20,
+        fontStyle: "bold",
       },
-      alternateRowStyles: {
-        fillColor: [250, 250, 250],
+
+      didParseCell: (hookData) => {
+        const totalRowIndex = safeData.length;
+        const recapRowIndex = safeData.length + 1;
+
+        // TOTAL PER POS
+        if (hookData.row.index === totalRowIndex) {
+          hookData.cell.styles.fillColor = YELLOW_TOTAL;
+          hookData.cell.styles.fontStyle = "bold";
+        }
+
+        // REKAP TOTAL
+        if (hookData.row.index === recapRowIndex) {
+          hookData.cell.styles.fillColor = YELLOW_RECAP;
+          hookData.cell.styles.fontStyle = "bold";
+        }
       },
-      theme: "grid",
     });
 
-    doc.save(`monthly-fee-breakdown-${year}-${month}.pdf`);
+    doc.save(`laporan-iuran-${year}-${month}.pdf`);
   };
-
-  const sumNumber = (
-    rows: BreakdownRow[],
-    key: keyof BreakdownRow
-  ): number =>
-    rows.reduce((acc, r) => acc + (Number(r[key]) || 0), 0);
-
-  const totalKasRT = sumNumber(safeData, "kasRT");
-  const totalAgamaRT = sumNumber(safeData, "agamaRT");
-  const totalSampah = sumNumber(safeData, "sampah");
-  const totalKeamanan = sumNumber(safeData, "keamanan");
-  const totalAgamaRW = sumNumber(safeData, "agamaRW");
-  const totalKasRW = sumNumber(safeData, "kasRW");
-  const totalKkmRW = sumNumber(safeData, "kkmRW");
-
-  const totalKasRtPlusAgamaRt = totalKasRT + totalAgamaRT;
-  const totalKeamananPlusRw =
-    totalKeamanan + totalAgamaRW + totalKasRW;
 
   /* ======================
    * RENDER
