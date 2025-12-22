@@ -123,12 +123,13 @@ export default function MonthlyInputs() {
         imageUrl = uploaded.secure_url;
       }
 
-      const form = new FormData();
-      form.append("block", block);
-      form.append("houseNumber", number);
-      form.append("date", month);
+      // const form = new FormData();
+      // form.append("block", block);
+      // form.append("houseNumber", number);
+      // form.append("date", month);
+      // form.append("name", name);
 
-      if (imageUrl) form.append("image", imageUrl);
+      // if (imageUrl) form.append("image", imageUrl);
 
       const res = await fetch(
         process.env.NEXT_PUBLIC_API_URL + "/api/monthly-fee-manual",
@@ -139,6 +140,7 @@ export default function MonthlyInputs() {
             block,
             houseNumber: number,
             date: month,
+            name: name,
             imageUrl: imageUrl,
           }),
         }
@@ -152,6 +154,7 @@ export default function MonthlyInputs() {
       // RESET FORM
       setBlock("");
       setNumber("");
+      setName("");
       setMonth("");
       setFile(null);
       setFileKey(Date.now());
