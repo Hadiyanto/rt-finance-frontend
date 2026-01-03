@@ -1,4 +1,4 @@
-declare module "next-pwa" {
+declare module "@ducanh2912/next-pwa" {
     import { NextConfig } from "next";
 
     interface PWAConfig {
@@ -18,9 +18,12 @@ declare module "next-pwa" {
             video?: string;
             font?: string;
         };
+        cacheOnFrontEndNav?: boolean;
+        reloadOnOnline?: boolean;
+        workboxOptions?: Record<string, unknown>;
     }
 
-    export default function withPWA(
+    export default function withPWAInit(
         config: PWAConfig
     ): (nextConfig: NextConfig) => NextConfig;
 }
