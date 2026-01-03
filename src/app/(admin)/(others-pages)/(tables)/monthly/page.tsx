@@ -25,8 +25,8 @@ export default function MonthlyFeeBreakdownPage() {
   const currentYear = today.getFullYear();
   const currentMonth = String(today.getMonth() + 1).padStart(2, "0");
 
-  // 👉 YEAR OPTION (current & next year)
-  const years = [currentYear, currentYear + 1].map(String);
+  // 👉 YEAR OPTION (previous, current & next year)
+  const years = [currentYear - 1, currentYear, currentYear + 1].map(String);
 
   const [year, setYear] = useState(currentYear.toString());
   const [month, setMonth] = useState(currentMonth);
