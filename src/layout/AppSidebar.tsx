@@ -77,6 +77,11 @@ export const userMenu: NavItem[] = [
   },
   {
     icon: <ListIcon />,
+    name: "Payment History",
+    path: "/history",
+  },
+  {
+    icon: <ListIcon />,
     name: "Submit Transaction",
     path: "/transaction/submit",
   },
