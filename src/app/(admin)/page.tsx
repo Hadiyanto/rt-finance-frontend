@@ -11,11 +11,7 @@ export default function HomePage() {
     async function check() {
       const valid = await validateToken();
 
-      if (valid) {
-        router.replace("/residents"); // Logged-in user
-      } else {
-        router.replace("/contributions/submit"); // Guest
-      }
+      router.replace("/contributions/submit");
     }
 
     check();
