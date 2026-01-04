@@ -82,6 +82,11 @@ export const userMenu: NavItem[] = [
   },
   {
     icon: <ListIcon />,
+    name: "Pending Submission",
+    path: "/pending-submission",
+  },
+  {
+    icon: <ListIcon />,
     name: "Submit Transaction",
     path: "/transaction/submit",
   },
