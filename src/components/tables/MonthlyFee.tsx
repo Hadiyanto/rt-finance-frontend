@@ -293,7 +293,7 @@ export default function MonthlyFeeBreakdownTable({
 
           <button
             onClick={downloadPDF}
-            className="inline-flex items-center gap-2 rounded-lg border border-blue-600 px-3 py-1.5 text-sm font-medium text-blue-600 transition hover:bg-blue-50 dark:border-blue-500 dark:text-blue-400 dark:hover:bg-blue-500/10"
+            className="inline-flex items-center gap-2 rounded-lg border border-brand-600 px-3 py-1.5 text-sm font-medium text-brand-600 transition hover:bg-brand-50 dark:border-brand-500 dark:text-brand-400 dark:hover:bg-brand-500/10"
           >
             📑 PDF
           </button>
@@ -339,7 +339,7 @@ export default function MonthlyFeeBreakdownTable({
                     ${idx % 2 === 0
                       ? "bg-white dark:bg-transparent"
                       : "bg-gray-50 dark:bg-white/[0.02]"}
-                    hover:bg-blue-50/40 dark:hover:bg-blue-500/5
+                    hover:bg-brand-50/40 dark:hover:bg-brand-500/5
                   `}
                 >
                   <TableCell className="px-5 py-4">{item.block}</TableCell>
@@ -363,7 +363,7 @@ export default function MonthlyFeeBreakdownTable({
                           {formatNumber(val)}
                         </span>
                       ) : (
-                        <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-blue-50 text-xs font-semibold text-blue-600 dark:bg-blue-500/10 dark:text-blue-400">
+                        <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-brand-50 text-xs font-semibold text-brand-600 dark:bg-brand-500/10 dark:text-brand-400">
                           –
                         </span>
                       )}

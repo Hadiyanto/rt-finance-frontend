@@ -231,7 +231,7 @@ export default function PendingSubmissionPage() {
                 <div className="fixed bottom-6 right-6">
                     <button
                         onClick={() => setIsModalOpen(true)}
-                        className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition"
+                        className="flex items-center gap-2 px-6 py-3 bg-brand-500 text-white rounded-full shadow-lg hover:bg-brand-600 transition"
                     >
                         <span>Next</span>
                         <span className="bg-white/20 px-2 py-0.5 rounded-full text-sm">

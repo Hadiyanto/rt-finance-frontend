@@ -88,7 +88,7 @@ export default function PendingSubmissionTable({
                                             if (el) el.indeterminate = someSelected && !allSelected;
                                         }}
                                         onChange={(e) => handleSelectAll(e.target.checked)}
-                                        className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                        className="w-4 h-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
                                     />
                                 </TableCell>
                                 <TableCell isHeader className="px-5 py-3 text-gray-500 text-start">
@@ -117,7 +117,7 @@ export default function PendingSubmissionTable({
                                             type="checkbox"
                                             checked={selectedIds.includes(record.id)}
                                             onChange={(e) => handleSelectOne(record.id, e.target.checked)}
-                                            className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                            className="w-4 h-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
                                         />
                                     </TableCell>
                                     <TableCell className="px-5 py-4 font-medium">{record.block}</TableCell>
