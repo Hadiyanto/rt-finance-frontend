@@ -18,11 +18,21 @@ export function useTokenAutoCheck() {
         return;
       }
 
-      const isValid = await validateToken();
+      const result = await validateToken();
 
-      if (!isValid) {
+      if (result === "valid") {
+        // Reset fail count jika berhasil
+        failCountRef.current = 0;
+      } else if (result === "invalid") {
+        // Token invalid (401/403) = langsung logout
+        console.error("Token invalid, logging out...");
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        router.replace("/contributions/submit");
+      } else if (result === "error") {
+        // Network/server error = retry sampai MAX_RETRIES
         failCountRef.current += 1;
-        console.warn(`Token validation failed (${failCountRef.current}/${MAX_RETRIES})`);
+        console.warn(`Token validation error (${failCountRef.current}/${MAX_RETRIES})`);
 
         if (failCountRef.current >= MAX_RETRIES) {
           console.error("Max retries reached, logging out...");
@@ -30,9 +40,6 @@ export function useTokenAutoCheck() {
           localStorage.removeItem("user");
           router.replace("/contributions/submit");
         }
-      } else {
-        // Reset fail count if validation succeeds
-        failCountRef.current = 0;
       }
     }
 

@@ -1,8 +1,10 @@
-export async function validateToken() {
+export type TokenValidationResult = "valid" | "invalid" | "error";
+
+export async function validateToken(): Promise<TokenValidationResult> {
   const token = localStorage.getItem("token");
 
   if (!token) {
-    return false;
+    return "invalid";
   }
 
   try {
@@ -13,13 +15,22 @@ export async function validateToken() {
       },
     });
 
-    if (!res.ok) return false;
+    // 401/403 = token invalid, logout immediately
+    if (res.status === 401 || res.status === 403) {
+      return "invalid";
+    }
+
+    // Other errors (500, etc) = server issue, retry
+    if (!res.ok) {
+      return "error";
+    }
 
     const data = await res.json();
-    return data.valid === true;
+    return data.valid === true ? "valid" : "invalid";
 
   } catch (err) {
+    // Network error = retry
     console.error("Token validation failed:", err);
-    return false;
+    return "error";
   }
 }
