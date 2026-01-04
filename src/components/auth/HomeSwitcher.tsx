@@ -14,8 +14,8 @@ export default function HomeSwitcher({
 
   useEffect(() => {
     async function check() {
-      const valid = await validateToken();
-      setIsValid(valid);
+      const result = await validateToken();
+      setIsValid(result === "valid");
     }
     check();
   }, []);
