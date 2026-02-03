@@ -1,5 +1,7 @@
 'use client';
 
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import React, { useState, useEffect, useMemo } from 'react';
 import BottomNav from '@/components/BottomNav';
 import {
@@ -143,6 +145,143 @@ export default function ReportIuranPage() {
     const paidCount = breakdown.filter((r) => r.source !== null).length;
     const totalCount = breakdown.length;
 
+    const downloadPDF = () => {
+        const doc = new jsPDF('portrait');
+
+        const title = `REKAP TOTAL IURAN - ${MONTHS[selectedMonth]} ${selectedYear}`;
+        doc.setFontSize(14);
+        doc.text(title, 14, 15);
+
+        const tableColumn = [
+            "Alamat",
+            "Nama",
+            "Kas RT",
+            "Agama RT",
+            "Sampah",
+            "Keamanan",
+            "Agama RW",
+            "Kas RW",
+            "KKM RW"
+        ];
+
+        const tableRows: any[] = [];
+
+        // ======================
+        // DATA ROWS
+        // ======================
+        breakdown.forEach((item) => {
+            tableRows.push([
+                `${item.block} - ${item.houseNumber}`,
+                item.fullName,
+                item.kasRT ?? "-",
+                item.agamaRT ?? "-",
+                item.sampah ?? "-",
+                item.keamanan ?? "-",
+                item.agamaRW ?? "-",
+                item.kasRW ?? "-",
+                item.kkmRW ?? "-"
+            ]);
+        });
+
+        // ======================
+        // SUM PER KOLOM
+        // ======================
+        const sum = {
+            kasRT: 0,
+            agamaRT: 0,
+            sampah: 0,
+            keamanan: 0,
+            agamaRW: 0,
+            kasRW: 0,
+            kkmRW: 0
+        };
+
+        breakdown.forEach(r => {
+            sum.kasRT += r.kasRT || 0;
+            sum.agamaRT += r.agamaRT || 0;
+            sum.sampah += r.sampah || 0;
+            sum.keamanan += r.keamanan || 0;
+            sum.agamaRW += r.agamaRW || 0;
+            sum.kasRW += r.kasRW || 0;
+            sum.kkmRW += r.kkmRW || 0;
+        });
+
+        // ======================
+        // REKAP TOTAL (GROUPED)
+        // ======================
+        const rekapPDF = {
+            kasRtGroup: sum.kasRT + sum.agamaRT,
+            sampah: sum.sampah,
+            keamananGroup: sum.keamanan + sum.agamaRW + sum.kasRW,
+            kkmRW: sum.kkmRW
+        };
+
+        // ===== REKAP ROW =====
+        tableRows.push([
+            "REKAP TOTAL IURAN",
+            "",
+            `Kas + Agama RT: ${rekapPDF.kasRtGroup}`,
+            "",
+            `Sampah: ${rekapPDF.sampah}`,
+            `Keamanan + Agama RW + Kas RW: ${rekapPDF.keamananGroup}`,
+            "",
+            "",
+            `KKM RW: ${rekapPDF.kkmRW}`
+        ]);
+
+        // ===== TOTAL ROW =====
+        tableRows.push([
+            "TOTAL PER KOLOM",
+            "",
+            sum.kasRT,
+            sum.agamaRT,
+            sum.sampah,
+            sum.keamanan,
+            sum.agamaRW,
+            sum.kasRW,
+            sum.kkmRW
+        ]);
+
+        // ======================
+        // RENDER PDF TABLE
+        // ======================
+        autoTable(doc, {
+            head: [tableColumn],
+            body: tableRows,
+            startY: 22,
+            theme: "striped",
+
+            styles: {
+                fontSize: 8,
+                cellPadding: 2,
+                halign: "center"
+            },
+
+            headStyles: {
+                fillColor: [15, 23, 42]
+            },
+
+            didParseCell: function (data) {
+                const isRekapRow = data.row.index === tableRows.length - 2;
+                const isTotalRow = data.row.index === tableRows.length - 1;
+
+                if (isRekapRow || isTotalRow) {
+                    data.cell.styles.fontStyle = "bold";
+                }
+            },
+
+            willDrawCell: function (data) {
+                const isRekapRow = data.row.index === tableRows.length - 2;
+
+                if (isRekapRow) {
+                    data.cell.styles.fillColor = [220, 252, 231]; // emerald-50
+                }
+            }
+        });
+
+        doc.save(`Rekap-Iuran-${MONTHS[selectedMonth]}-${selectedYear}.pdf`);
+    };
+
     const LoadingOverlay = () => {
         if (!isLoading) return null;
 
@@ -170,6 +309,18 @@ export default function ReportIuranPage() {
                         {paidCount}/{totalCount} warga sudah bayar
                     </p>
                 </div>
+                <button
+                    onClick={downloadPDF}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white dark:bg-slate-800 
+                        border border-rose-200 dark:border-slate-700 
+                        text-rose-600 dark:text-rose-400 
+                        text-xs font-semibold shadow-sm 
+                        hover:bg-rose-50 dark:hover:bg-slate-700 
+                        active:scale-95 transition"
+                >
+                    <MdPictureAsPdf className="text-sm" />
+                    PDF
+                </button>
             </header>
 
             <main className="px-5 space-y-6">
@@ -207,7 +358,7 @@ export default function ReportIuranPage() {
                                 {/* Sticky Header */}
                                 <div className="grid grid-cols-8 bg-slate-100 dark:bg-slate-900 px-4 py-3 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-10">
                                     <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                                        Alamat
+                                        Block - No
                                     </span>
                                     <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider text-center">
                                         Kas RT
