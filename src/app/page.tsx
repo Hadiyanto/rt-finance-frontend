@@ -321,6 +321,9 @@ export default function HomePage() {
             setAmount("");
             setSelectedFile(null);
             setPreviewUrl(null);
+            if (fileInputRef.current) {
+                fileInputRef.current.value = "";
+            }
 
         } catch (error) {
             console.error("Submit error:", error);
