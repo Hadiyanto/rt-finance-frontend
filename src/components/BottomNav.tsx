@@ -15,9 +15,9 @@ export default function BottomNav() {
     };
 
     const navItems = [
-        { name: 'Home', path: '/', icon: MdHome },
-        // { name: 'Pengeluaran', path: '/pengeluaran', icon: MdReceipt },
-        { name: 'Report', path: '/report-iuran', icon: MdBarChart },
+        { name: 'Submit Iuran', path: '/', icon: MdReceipt },
+        // { name: 'Keuangan', path: '/pengeluaran', icon: MdBarChart },
+        { name: 'Iuran Bulanan', path: '/report-iuran', icon: MdBarChart },
         // { name: 'Profile', path: '/profile', icon: MdAccountCircle },
     ];
 
