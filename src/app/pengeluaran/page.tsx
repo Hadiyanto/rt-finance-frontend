@@ -26,6 +26,11 @@ interface FinanceItem {
     typeId: number;
     category: FinanceCategory;
     type: FinanceType;
+    status: string; // PENDING | APPROVED | REJECTED
+    approvedBy: number | null;
+    approvedAt: string | null;
+    createdAt: string;
+    updatedAt: string;
 }
 
 interface FinanceResponse {
@@ -100,6 +105,38 @@ export default function PengeluaranPage() {
         };
         fetchData();
     }, []);
+
+    const handleApprove = async (id: number, newStatus: 'APPROVED' | 'REJECTED') => {
+        try {
+            const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/finance/${id}/status`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                },
+                body: JSON.stringify({ status: newStatus }),
+            });
+
+            if (response.ok) {
+                // Refresh data
+                const refreshResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/finance`);
+                if (refreshResponse.ok) {
+                    const data: FinanceResponse = await refreshResponse.json();
+                    const sortedData = data.data.sort((a, b) =>
+                        new Date(b.date).getTime() - new Date(a.date).getTime()
+                    );
+                    setFinanceData(sortedData);
+                }
+            } else {
+                alert('Gagal mengupdate status transaksi');
+            }
+        } catch (error) {
+            console.error('Approve error:', error);
+            alert('Gagal mengupdate status transaksi');
+        }
+    };
 
     const formatDate = (dateStr: string) => {
         const date = new Date(dateStr);
@@ -228,9 +265,12 @@ export default function PengeluaranPage() {
         }
     };
 
-    // Calculate totals
+    // Calculate totals (only APPROVED transactions)
     const { totalIncome, totalExpense, balance } = useMemo(() => {
-        return financeData.reduce(
+        // Filter only APPROVED transactions for calculation
+        const approvedData = financeData.filter(item => item.status === 'APPROVED');
+
+        return approvedData.reduce(
             (acc, item) => {
                 if (item.type.name === 'income') {
                     acc.totalIncome += item.amount;
@@ -325,41 +365,74 @@ export default function PengeluaranPage() {
                                     Belum ada data transaksi
                                 </div>
                             ) : (
-                                financeData.map((item) => {
-                                    const isIncome = item.type.name === 'income';
-                                    return (
-                                        <div key={item.id} className="grid grid-cols-12 px-4 py-4 items-center hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
-                                            <div className="col-span-3">
-                                                <div className="flex flex-col">
-                                                    <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                                                        {formatDate(item.date)}
-                                                    </span>
-                                                    {/* Show category on mobile */}
-                                                    <span className="text-[10px] text-slate-400 md:hidden mt-1 line-clamp-1">
-                                                        {item.category?.name}
-                                                    </span>
+                                financeData
+                                    // Filter: guests see only APPROVED, logged-in users see all
+                                    .filter(item => isLoggedIn || item.status === 'APPROVED')
+                                    .map((item) => {
+                                        const isIncome = item.type.name === 'income';
+                                        const statusColor =
+                                            item.status === 'APPROVED' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                                                item.status === 'REJECTED' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                                                    'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400';
+
+                                        return (
+                                            <div key={item.id} className="grid grid-cols-12 px-4 py-4 items-center hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                                                <div className="col-span-3">
+                                                    <div className="flex flex-col">
+                                                        <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                                                            {formatDate(item.date)}
+                                                        </span>
+                                                        {/* Show category on mobile */}
+                                                        <span className="text-[10px] text-slate-400 md:hidden mt-1 line-clamp-1">
+                                                            {item.category?.name}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <div className="col-span-5">
+                                                    <div className="flex flex-col gap-1">
+                                                        <span className="text-sm font-medium text-slate-700 dark:text-slate-200 line-clamp-2">
+                                                            {item.description}
+                                                        </span>
+                                                        {/* Show category on desktop */}
+                                                        <span className="text-xs text-slate-400 mt-0.5 hidden md:block">
+                                                            {item.category?.name}
+                                                        </span>
+                                                        {/* Status Badge (only for logged-in users) */}
+                                                        {isLoggedIn && (
+                                                            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full w-fit ${statusColor}`}>
+                                                                {item.status}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <div className="col-span-4 text-right">
+                                                    <div className="flex flex-col items-end gap-1">
+                                                        <span className={`text-sm font-bold ${isIncome ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                                            {isIncome ? '+ ' : '- '}
+                                                            Rp {formatCurrency(item.amount)}
+                                                        </span>
+                                                        {/* Action Buttons for PENDING status */}
+                                                        {isLoggedIn && item.status === 'PENDING' && (
+                                                            <div className="flex gap-1">
+                                                                <button
+                                                                    onClick={() => handleApprove(item.id, 'APPROVED')}
+                                                                    className="text-[10px] px-2 py-1 rounded bg-green-500 hover:bg-green-600 text-white font-medium transition-colors"
+                                                                >
+                                                                    Approve
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleApprove(item.id, 'REJECTED')}
+                                                                    className="text-[10px] px-2 py-1 rounded bg-red-500 hover:bg-red-600 text-white font-medium transition-colors"
+                                                                >
+                                                                    Reject
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
-                                            <div className="col-span-5">
-                                                <div className="flex flex-col">
-                                                    <span className="text-sm font-medium text-slate-700 dark:text-slate-200 line-clamp-2">
-                                                        {item.description}
-                                                    </span>
-                                                    {/* Show category on desktop */}
-                                                    <span className="text-xs text-slate-400 mt-0.5 hidden md:block">
-                                                        {item.category?.name}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            <div className="col-span-4 text-right">
-                                                <span className={`text-sm font-bold ${isIncome ? 'text-emerald-500' : 'text-rose-500'}`}>
-                                                    {isIncome ? '+ ' : '- '}
-                                                    Rp {formatCurrency(item.amount)}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    );
-                                })
+                                        );
+                                    })
                             )}
                         </div>
                     </div>
