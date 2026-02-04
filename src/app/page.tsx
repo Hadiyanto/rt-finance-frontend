@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import BottomNav from '@/components/BottomNav';
 import { MdInfo, MdEdit, MdCheck, MdDelete, MdAddAPhoto, MdSend, MdClose, MdCheckCircle, MdError } from 'react-icons/md';
 
@@ -98,6 +99,7 @@ const Picker = ({ items, selected, onSelect }: PickerProps) => {
 };
 
 export default function HomePage() {
+    const router = useRouter();
     const [selectedMonth, setSelectedMonth] = useState(MONTHS[new Date().getMonth()]);
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
     const [amount, setAmount] = useState("");
@@ -115,6 +117,10 @@ export default function HomePage() {
     const [showSummary, setShowSummary] = useState(false);
     const [validationErrors, setValidationErrors] = useState<{ name?: string; amount?: string }>({});
     const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+    // Secret login redirect
+    const [clickCount, setClickCount] = useState(0);
+    const clickTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     // Fetch blocks data on mount
     useEffect(() => {
@@ -333,12 +339,36 @@ export default function HomePage() {
         }
     };
 
+    const handleTitleClick = () => {
+        const newCount = clickCount + 1;
+        setClickCount(newCount);
+
+        // Reset counter after 2 seconds of no clicks
+        if (clickTimeoutRef.current) {
+            clearTimeout(clickTimeoutRef.current);
+        }
+        clickTimeoutRef.current = setTimeout(() => {
+            setClickCount(0);
+        }, 2000);
+
+        // Redirect to login after 5 clicks
+        if (newCount >= 5) {
+            setClickCount(0);
+            router.push('/login');
+        }
+    };
+
     return (
         <main className="min-h-screen w-full bg-background-light dark:bg-background-dark flex justify-center font-display">
             <div className="relative flex min-h-screen w-full max-w-[430px] mx-auto flex-col bg-white dark:bg-background-dark overflow-x-hidden shadow-xl pb-24">
                 {/* Header */}
                 <div className="flex items-center bg-white dark:bg-background-dark p-4 pb-2 justify-center sticky top-0 z-10 border-b border-gray-100 dark:border-gray-800 h-14">
-                    <h2 className="text-[#111418] dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] text-center">Setor Iuran Bulanan</h2>
+                    <h2
+                        onClick={handleTitleClick}
+                        className="text-[#111418] dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] text-center cursor-pointer select-none"
+                    >
+                        Setor Iuran Bulanan
+                    </h2>
                 </div>
 
                 <div className="p-4">
