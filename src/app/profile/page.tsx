@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import BottomNav from '@/components/BottomNav';
-import { MdArrowBack, MdPerson, MdHome, MdPhone, MdEdit, MdLogout } from 'react-icons/md';
+import { MdArrowBack, MdPerson, MdHome, MdPhone, MdEdit, MdLogout, MdCheckCircle } from 'react-icons/md';
 
 interface User {
     id: number;
@@ -155,6 +155,16 @@ export default function ProfilePage() {
 
             {/* Action Buttons */}
             <div className="p-4 flex flex-col gap-3 mt-6">
+                {/* Approval Iuran Button */}
+                <button
+                    onClick={() => router.push('/approval-iuran')}
+                    className="w-full bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 font-bold py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+                >
+                    <MdCheckCircle className="text-xl" />
+                    Approval Iuran
+                </button>
+
+                {/* Logout Button */}
                 <button
                     onClick={handleLogout}
                     className="w-full bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 font-bold py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
