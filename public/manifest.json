@@ -1,7 +1,7 @@
 {
-    "name": "RT Finance",
-    "short_name": "RT Finance",
-    "description": "Aplikasi Keuangan RT",
+    "name": "GMM 001 - Graha Mampang Mas",
+    "short_name": "GMM 001",
+    "description": "Sistem Keuangan RT 001/016 Graha Mampang Mas",
     "start_url": "/",
     "display": "standalone",
     "background_color": "#ffffff",

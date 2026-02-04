@@ -5,6 +5,7 @@ import "./globals.css";
 
 import { ThemeProvider } from "@/context/ThemeContext";
 import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
+import NotificationPrompt from "@/components/NotificationPrompt";
 
 // =======================
 // Fonts
@@ -32,13 +33,13 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 // =======================
 
 export const metadata: Metadata = {
-  title: "RT Finance",
-  description: "Aplikasi Keuangan RT",
+  title: "GMM 001 - Graha Mampang Mas",
+  description: "Sistem Keuangan RT 001/016 Graha Mampang Mas",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "RT Finance",
+    title: "GMM 001",
   },
 };
 
@@ -70,6 +71,7 @@ export default function RootLayout({
         ].join(" ")}
       >
         <ServiceWorkerRegistration />
+        <NotificationPrompt />
         <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>

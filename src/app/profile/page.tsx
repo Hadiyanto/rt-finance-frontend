@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import BottomNav from '@/components/BottomNav';
+import NotificationSettings from '@/components/NotificationSettings';
 import { MdArrowBack, MdPerson, MdHome, MdPhone, MdEdit, MdLogout, MdCheckCircle } from 'react-icons/md';
 
 interface User {
@@ -151,6 +152,11 @@ export default function ProfilePage() {
                         </div>
                     </div>
                 </div>
+            </div>
+
+            {/* Notification Settings */}
+            <div className="p-4">
+                <NotificationSettings />
             </div>
 
             {/* Action Buttons */}
