@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import BottomNav from '@/components/BottomNav';
-import { MdAdd, MdReceipt, MdArrowUpward, MdArrowDownward, MdTrendingUp, MdTrendingDown, MdWallet } from 'react-icons/md';
+import { MdAdd, MdReceipt, MdArrowUpward, MdArrowDownward, MdTrendingUp, MdTrendingDown, MdWallet, MdClose } from 'react-icons/md';
 
 interface FinanceType {
     id: number;
@@ -13,6 +13,7 @@ interface FinanceCategory {
     id: number;
     name: string;
     typeId: number;
+    type?: FinanceType;
 }
 
 interface FinanceItem {
@@ -32,9 +33,52 @@ interface FinanceResponse {
     data: FinanceItem[];
 }
 
+interface CategoryResponse {
+    total: number;
+    data: FinanceCategory[];
+}
+
 export default function PengeluaranPage() {
     const [financeData, setFinanceData] = useState<FinanceItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [showModal, setShowModal] = useState(false);
+    const [categories, setCategories] = useState<FinanceCategory[]>([]);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Form state
+    const [transactionType, setTransactionType] = useState<'income' | 'expense'>('income');
+    const [selectedCategoryId, setSelectedCategoryId] = useState<number | ''>('');
+    const [amount, setAmount] = useState('');
+    const [description, setDescription] = useState('');
+    const [date, setDate] = useState(new Date().toISOString().split('T')[0]); // YYYY-MM-DD
+
+    // Image upload state
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+    const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+    // Check login status
+    useEffect(() => {
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+        setIsLoggedIn(!!token);
+    }, []);
+
+    // Fetch categories
+    useEffect(() => {
+        const fetchCategories = async () => {
+            try {
+                const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/categories`);
+                if (response.ok) {
+                    const data: CategoryResponse = await response.json();
+                    setCategories(data.data);
+                }
+            } catch (error) {
+                console.error('Failed to fetch categories:', error);
+            }
+        };
+        fetchCategories();
+    }, []);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -68,6 +112,120 @@ export default function PengeluaranPage() {
 
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('id-ID').format(amount);
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsSubmitting(true);
+
+        try {
+            const typeId = transactionType === 'income' ? 1 : 2;
+            const numAmount = parseFloat(amount.replace(/\D/g, ''));
+
+            // Get token from storage
+            const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+
+            let imageUrl = '';
+
+            // Step 1: Upload image if selected
+            if (selectedFile) {
+                const formData = new FormData();
+                formData.append('image', selectedFile);
+
+                const uploadResponse = await fetch(
+                    `${process.env.NEXT_PUBLIC_API_URL}/api/upload-image`,
+                    {
+                        method: 'POST',
+                        body: formData,
+                    }
+                );
+
+                if (!uploadResponse.ok) {
+                    throw new Error('Failed to upload image');
+                }
+
+                const uploadData = await uploadResponse.json();
+                imageUrl = uploadData.imageUrl;
+            }
+
+            // Step 2: Submit finance data
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/finance`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    amount: numAmount,
+                    description,
+                    categoryId: selectedCategoryId,
+                    typeId,
+                    date,
+                    imageUrl,
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to create transaction');
+            }
+
+            // Reset form
+            setAmount('');
+            setDescription('');
+            setSelectedCategoryId('');
+            setDate(new Date().toISOString().split('T')[0]);
+            setSelectedFile(null);
+            setPreviewUrl(null);
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
+            setShowModal(false);
+
+            // Refresh data
+            const refreshResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/finance`);
+            if (refreshResponse.ok) {
+                const data: FinanceResponse = await refreshResponse.json();
+                const sortedData = data.data.sort((a, b) =>
+                    new Date(b.date).getTime() - new Date(a.date).getTime()
+                );
+                setFinanceData(sortedData);
+            }
+        } catch (error) {
+            console.error('Submit error:', error);
+            alert('Gagal menyimpan transaksi');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            // Validate file type
+            if (!file.type.startsWith('image/')) {
+                alert('Hanya file gambar yang diperbolehkan');
+                return;
+            }
+            // Validate file size (max 5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                alert('Ukuran file maksimal 5MB');
+                return;
+            }
+            setSelectedFile(file);
+            setPreviewUrl(URL.createObjectURL(file));
+        }
+    };
+
+    const handleUploadClick = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleRemoveFile = () => {
+        setSelectedFile(null);
+        setPreviewUrl(null);
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
     };
 
     // Calculate totals
@@ -111,9 +269,14 @@ export default function PengeluaranPage() {
                     <h1 className="text-2xl font-bold tracking-tight">Keuangan</h1>
                     <p className="text-sm text-slate-500 dark:text-slate-400">Laporan Kas RT</p>
                 </div>
-                <button className="w-10 h-10 flex items-center justify-center rounded-full bg-primary text-white shadow-lg shadow-primary/30">
-                    <MdAdd className="text-2xl" />
-                </button>
+                {isLoggedIn && (
+                    <button
+                        onClick={() => setShowModal(true)}
+                        className="w-10 h-10 flex items-center justify-center rounded-full bg-primary text-white shadow-lg shadow-primary/30 hover:bg-primary/90 transition-colors"
+                    >
+                        <MdAdd className="text-2xl" />
+                    </button>
+                )}
             </header>
 
             <main className="px-5 space-y-6">
@@ -202,6 +365,219 @@ export default function PengeluaranPage() {
                     </div>
                 </section>
             </main>
+
+            {/* Add Transaction Modal */}
+            {showModal && (
+                <div className="fixed inset-0 z-[100]">
+                    {/* Backdrop */}
+                    <div
+                        className="absolute inset-0 bg-black/50 transition-opacity"
+                        onClick={() => setShowModal(false)}
+                    />
+
+                    {/* Modal */}
+                    <div className="absolute bottom-0 left-0 right-0 bg-white dark:bg-gray-900 rounded-t-3xl p-6 transform transition-transform max-h-[90vh] overflow-y-auto">
+                        {/* Handle */}
+                        <div className="w-12 h-1.5 bg-gray-300 dark:bg-gray-700 rounded-full mx-auto mb-4" />
+
+                        {/* Header */}
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-xl font-bold text-[#111418] dark:text-white">Tambah Transaksi</h3>
+                            <button
+                                onClick={() => setShowModal(false)}
+                                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
+                            >
+                                <MdClose className="text-2xl text-gray-500" />
+                            </button>
+                        </div>
+
+                        {/* Form */}
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                            {/* Transaction Type */}
+                            <div>
+                                <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 block">
+                                    Tipe Transaksi
+                                </label>
+                                <div className="flex gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setTransactionType('income');
+                                            setSelectedCategoryId('');
+                                        }}
+                                        className={`flex-1 py-3 rounded-xl font-semibold transition-colors ${transactionType === 'income'
+                                            ? 'bg-green-500 text-white'
+                                            : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+                                            }`}
+                                    >
+                                        Pemasukan
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setTransactionType('expense');
+                                            setSelectedCategoryId('');
+                                        }}
+                                        className={`flex-1 py-3 rounded-xl font-semibold transition-colors ${transactionType === 'expense'
+                                            ? 'bg-red-500 text-white'
+                                            : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+                                            }`}
+                                    >
+                                        Pengeluaran
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Category */}
+                            <div>
+                                <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 block">
+                                    Kategori
+                                </label>
+                                <select
+                                    value={selectedCategoryId}
+                                    onChange={(e) => setSelectedCategoryId(Number(e.target.value))}
+                                    required
+                                    className="w-full p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
+                                >
+                                    <option value="">Pilih Kategori</option>
+                                    {categories
+                                        .filter(cat => cat.typeId === (transactionType === 'income' ? 1 : 2))
+                                        .map(cat => (
+                                            <option key={cat.id} value={cat.id}>
+                                                {cat.name}
+                                            </option>
+                                        ))}
+                                </select>
+                            </div>
+
+                            {/* Amount */}
+                            <div>
+                                <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 block">
+                                    Jumlah
+                                </label>
+                                <div className="relative">
+                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 font-medium">
+                                        Rp
+                                    </span>
+                                    <input
+                                        type="text"
+                                        value={amount}
+                                        onChange={(e) => {
+                                            const value = e.target.value.replace(/\D/g, '');
+                                            if (value === '') {
+                                                setAmount('');
+                                                return;
+                                            }
+                                            const formatted = new Intl.NumberFormat('id-ID').format(parseInt(value));
+                                            setAmount(formatted);
+                                        }}
+                                        placeholder="0"
+                                        required
+                                        className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Description */}
+                            <div>
+                                <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 block">
+                                    Deskripsi
+                                </label>
+                                <textarea
+                                    value={description}
+                                    onChange={(e) => setDescription(e.target.value)}
+                                    placeholder="Masukkan deskripsi transaksi"
+                                    required
+                                    rows={3}
+                                    className="w-full p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                                />
+                            </div>
+
+                            {/* Image Upload */}
+                            <div>
+                                <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 block">
+                                    Bukti Transaksi (Opsional)
+                                </label>
+
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleFileSelect}
+                                    className="hidden"
+                                />
+
+                                {previewUrl ? (
+                                    <div className="relative w-full rounded-xl overflow-hidden border-2 border-primary/30">
+                                        <img
+                                            src={previewUrl}
+                                            alt="Preview"
+                                            className="w-full h-48 object-cover"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={handleRemoveFile}
+                                            className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white p-2 rounded-full shadow-lg transition-colors"
+                                        >
+                                            <MdClose className="text-xl" />
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div
+                                        onClick={handleUploadClick}
+                                        className="flex flex-col items-center justify-center w-full min-h-[140px] border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800/50 p-4 text-center cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                                    >
+                                        <div className="bg-primary/10 p-2 rounded-full mb-2">
+                                            <MdAdd className="text-primary text-2xl" />
+                                        </div>
+                                        <p className="text-sm text-gray-600 dark:text-gray-300 font-medium">Ketuk untuk Upload Foto</p>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">JPG, PNG max. 5MB</p>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Date */}
+                            <div>
+                                <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 block">
+                                    Tanggal
+                                </label>
+                                <input
+                                    type="date"
+                                    value={date}
+                                    onChange={(e) => setDate(e.target.value)}
+                                    required
+                                    className="w-full p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
+                                />
+                            </div>
+
+                            {/* Submit Button */}
+                            <div className="flex gap-3 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowModal(false)}
+                                    className="flex-1 py-3 rounded-xl font-semibold border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                                >
+                                    Batal
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={isSubmitting}
+                                    className="flex-1 py-3 rounded-xl font-semibold bg-primary hover:bg-primary/90 disabled:bg-primary/50 text-white flex items-center justify-center gap-2 transition-colors"
+                                >
+                                    {isSubmitting ? (
+                                        <>
+                                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                            Menyimpan...
+                                        </>
+                                    ) : (
+                                        'Simpan'
+                                    )}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
 
             <BottomNav />
         </div>
