@@ -23,9 +23,18 @@ export default function WhatsAppManager() {
     const [contacts, setContacts] = useState<Contact[]>([]);
     const [recipient, setRecipient] = useState<'individual' | 'group' | 'all'>('individual');
     const [selectedContacts, setSelectedContacts] = useState<number[]>([]);
-    const [manualPhone, setManualPhone] = useState(''); // Manual phone input
+    const [manualPhone, setManualPhone] = useState('62'); // Auto-prefix 62
     const [message, setMessage] = useState('');
     const [isSending, setIsSending] = useState(false);
+
+    // Message templates
+    const messageTemplates = [
+        { label: 'Pilih Template...', value: '' },
+        { label: 'Reminder Iuran', value: 'Yth Bapak/Ibu,\n\nMohon segera melakukan pembayaran iuran bulan ini sebesar Rp 210.000.\n\nTerima kasih.' },
+        { label: 'Konfirmasi Pembayaran', value: 'Terima kasih atas pembayaran iuran Anda. Pembayaran telah kami terima dan dicatat.\n\nSalam,' },
+        { label: 'Info Rapat', value: 'Yth Warga RT,\n\nAkan diadakan rapat warga pada:\nTanggal: [ISI]\nWaktu: [ISI]\nTempat: [ISI]\n\nMohon kehadiran Bapak/Ibu.\n\nTerima kasih.' },
+        { label: 'Pengumuman Umum', value: 'Pengumuman untuk seluruh warga RT,\n\n[ISI PENGUMUMAN]\n\nTerima kasih atas perhatiannya.' },
+    ];
 
     useEffect(() => {
         checkStatus();
@@ -333,7 +342,7 @@ export default function WhatsAppManager() {
                                 onChange={(e) => {
                                     setRecipient(e.target.value as any);
                                     setSelectedContacts([]);
-                                    setManualPhone('');
+                                    setManualPhone('62');
                                 }}
                                 className="w-full p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
                             >
@@ -352,7 +361,15 @@ export default function WhatsAppManager() {
                                 <input
                                     type="text"
                                     value={manualPhone}
-                                    onChange={(e) => setManualPhone(e.target.value)}
+                                    onChange={(e) => {
+                                        let val = e.target.value.replace(/[^0-9]/g, '');
+                                        if (!val.startsWith('62')) {
+                                            if (val.startsWith('0')) val = '62' + val.substring(1);
+                                            else if (val && !val.startsWith('6')) val = '62' + val;
+                                            else val = '62';
+                                        }
+                                        setManualPhone(val);
+                                    }}
                                     placeholder="628123456789"
                                     className="w-full p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
                                 />
@@ -397,14 +414,26 @@ export default function WhatsAppManager() {
 
                         {/* Message */}
                         <div className="mb-4">
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                Pesan
-                            </label>
+                            <div className="flex items-center justify-between mb-2">
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                    Pesan
+                                </label>
+                                <select
+                                    onChange={(e) => setMessage(e.target.value)}
+                                    className="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300"
+                                >
+                                    {messageTemplates.map((template, idx) => (
+                                        <option key={idx} value={template.value}>
+                                            {template.label}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
                             <textarea
                                 value={message}
                                 onChange={(e) => setMessage(e.target.value)}
                                 rows={5}
-                                placeholder="Ketik pesan disini..."
+                                placeholder="Ketik pesan disini atau pilih template..."
                                 className="w-full p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary resize-none"
                             />
                         </div>
