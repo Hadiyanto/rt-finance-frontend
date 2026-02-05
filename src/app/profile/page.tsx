@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import BottomNav from '@/components/BottomNav';
 import NotificationSettings from '@/components/NotificationSettings';
 import WhatsAppManager from '@/components/WhatsAppManager';
-import { MdArrowBack, MdPerson, MdHome, MdPhone, MdEdit, MdLogout, MdCheckCircle } from 'react-icons/md';
+import { MdArrowBack, MdPerson, MdHome, MdPhone, MdEdit, MdLogout, MdCheckCircle, MdWarning } from 'react-icons/md';
 
 interface User {
     id: number;
@@ -177,6 +177,17 @@ export default function ProfilePage() {
                     <MdCheckCircle className="text-xl" />
                     Approval Iuran
                 </button>
+
+                {/* Laporan Tunggakan Button - Admin Only */}
+                {user && (user.role === 'admin' || user.role === 'bendahara') && (
+                    <button
+                        onClick={() => router.push('/unpaid-residents')}
+                        className="w-full bg-orange-50 text-orange-600 dark:bg-orange-900/20 dark:text-orange-400 font-bold py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-colors"
+                    >
+                        <MdWarning className="text-xl" />
+                        Laporan Tunggakan
+                    </button>
+                )}
 
                 {/* Logout Button */}
                 <button
