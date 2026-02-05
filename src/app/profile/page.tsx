@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import BottomNav from '@/components/BottomNav';
 import NotificationSettings from '@/components/NotificationSettings';
+import WhatsAppManager from '@/components/WhatsAppManager';
 import { MdArrowBack, MdPerson, MdHome, MdPhone, MdEdit, MdLogout, MdCheckCircle } from 'react-icons/md';
 
 interface User {
@@ -158,6 +159,13 @@ export default function ProfilePage() {
             <div className="p-4">
                 <NotificationSettings />
             </div>
+
+            {/* WhatsApp Manager - Admin Only */}
+            {user && (user.role === 'admin' || user.role === 'bendahara') && (
+                <div className="p-4">
+                    <WhatsAppManager />
+                </div>
+            )}
 
             {/* Action Buttons */}
             <div className="p-4 flex flex-col gap-3 mt-6">
