@@ -30,23 +30,43 @@ self.addEventListener('activate', (event) => {
     self.clients.claim();
 });
 
-// Fetch event - network first, fallback to cache
+// Fetch event - Optimized Strategy
 self.addEventListener('fetch', (event) => {
-    event.respondWith(
-        fetch(event.request)
-            .then((response) => {
-                // Clone the response
-                const responseToCache = response.clone();
+    const url = new URL(event.request.url);
 
-                caches.open(CACHE_NAME)
-                    .then((cache) => {
+    // 1. API Requests -> Network First (Fresh data)
+    // Jangan cache endpoint /api/ kecuali di-handle spesifik logic lain
+    if (url.pathname.startsWith('/api/')) {
+        event.respondWith(
+            fetch(event.request)
+                .catch(() => {
+                    // Optional: return cached API response if available offline
+                    return caches.match(event.request);
+                })
+        );
+        return;
+    }
+
+    // 2. Static Assets (JS, CSS, Images, Fonts) & Pages -> Stale-While-Revalidate (FAST)
+    // Serve from cache immediately, then update cache in background
+    event.respondWith(
+        caches.match(event.request)
+            .then((cachedResponse) => {
+                // Fetch from network to update cache (in background)
+                const fetchPromise = fetch(event.request).then((networkResponse) => {
+                    // Clone and update cache
+                    const responseToCache = networkResponse.clone();
+                    caches.open(CACHE_NAME).then((cache) => {
                         cache.put(event.request, responseToCache);
                     });
+                    return networkResponse;
+                }).catch((err) => {
+                    // Network failed? It's fine, we served cached content
+                    console.log('Background fetch failed:', err);
+                });
 
-                return response;
-            })
-            .catch(() => {
-                return caches.match(event.request);
+                // Return cached response immediately if available, otherwise wait for network
+                return cachedResponse || fetchPromise;
             })
     );
 });
