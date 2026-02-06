@@ -17,23 +17,6 @@ export default function ProfilePage() {
     const router = useRouter();
     const [user, setUser] = useState<User | null>(null);
 
-    useEffect(() => {
-        // Get user from localStorage or sessionStorage
-        const userStr = localStorage.getItem('user') || sessionStorage.getItem('user');
-        if (userStr) {
-            try {
-                const userData = JSON.parse(userStr);
-                setUser(userData);
-            } catch (error) {
-                console.error('Failed to parse user data:', error);
-                router.push('/');
-            }
-        } else {
-            // No user logged in, redirect to home
-            router.push('/');
-        }
-    }, [router]);
-
     const handleLogout = () => {
         // Clear both localStorage and sessionStorage
         localStorage.removeItem('token');
@@ -47,6 +30,35 @@ export default function ProfilePage() {
         // Redirect to home
         router.push('/');
     };
+
+    useEffect(() => {
+        const checkAuth = async () => {
+            const userStr = localStorage.getItem('user') || sessionStorage.getItem('user');
+            const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+
+            if (userStr && token) {
+                try {
+                    const userData = JSON.parse(userStr);
+                    setUser(userData);
+
+                    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/check`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+
+                    if (response.status === 401) {
+                        handleLogout();
+                    }
+                } catch (error) {
+                    console.error('Auth check failed:', error);
+                    handleLogout();
+                }
+            } else {
+                router.push('/');
+            }
+        };
+
+        checkAuth();
+    }, [router]);
 
     if (!user) {
         return (
