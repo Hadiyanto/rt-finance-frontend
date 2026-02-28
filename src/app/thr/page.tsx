@@ -98,11 +98,11 @@ const Picker = ({ items, selected, onSelect }: PickerProps) => {
     );
 };
 
-export default function HomePage() {
+export default function ThrPage() {
     const router = useRouter();
     const [selectedMonth, setSelectedMonth] = useState(MONTHS[new Date().getMonth()]);
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-    const [amount, setAmount] = useState("");
+    const [amount, setAmount] = useState("172000");
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -202,19 +202,7 @@ export default function HomePage() {
         }
     };
 
-    const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        // Remove non-digit characters
-        const value = e.target.value.replace(/\D/g, "");
 
-        if (value === "") {
-            setAmount("");
-            return;
-        }
-
-        // Format with thousands separator (dot for IDR)
-        const formatted = new Intl.NumberFormat("id-ID").format(parseInt(value));
-        setAmount(formatted);
-    };
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -252,8 +240,8 @@ export default function HomePage() {
         if (!residentName.trim()) {
             errors.name = "Nama penghuni harus diisi";
         }
-        if (!amount.trim()) {
-            errors.amount = "Jumlah pembayaran harus diisi";
+        if (!amount) {
+            errors.amount = "Jumlah pembayaran harus dipilih";
         }
 
         setValidationErrors(errors);
@@ -300,7 +288,7 @@ export default function HomePage() {
             const dateStr = `${selectedYear}-${monthIndex.toString().padStart(2, "0")}`;
 
             const paymentResponse = await fetch(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/monthly-fee-manual`,
+                `${process.env.NEXT_PUBLIC_API_URL}/api/thr-manual`,
                 {
                     method: "POST",
                     headers: {
@@ -312,6 +300,7 @@ export default function HomePage() {
                         date: dateStr,
                         name: residentName,
                         imageUrl,
+                        amount
                     }),
                 }
             );
@@ -325,7 +314,7 @@ export default function HomePage() {
             setToast({ type: 'success', message: 'Laporan berhasil dikirim!' });
 
             // Reset form
-            setAmount("");
+            setAmount("172000");
             setSelectedFile(null);
             setPreviewUrl(null);
             if (fileInputRef.current) {
@@ -334,8 +323,8 @@ export default function HomePage() {
 
         } catch (error: any) {
             console.error("Submit error:", error);
-            if (error?.code === 'MONTHLY_FEE_ALREADY_SUBMITTED') {
-                setToast({ type: 'error', message: 'Iuran untuk rumah dan bulan ini sudah pernah dilaporkan.' });
+            if (error?.code === 'THR_ALREADY_SUBMITTED') {
+                setToast({ type: 'error', message: 'THR untuk rumah dan tahun ini sudah pernah dilaporkan.' });
             } else {
                 setToast({ type: 'error', message: error?.message && error.message !== 'Failed to submit payment' ? error.message : 'Gagal mengirim laporan. Silakan coba lagi.' });
             }
@@ -372,7 +361,7 @@ export default function HomePage() {
                         onClick={handleTitleClick}
                         className="text-[#111418] dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] text-center cursor-pointer select-none"
                     >
-                        Setor Iuran Bulanan
+                        Setor THR
                     </h2>
                 </div>
 
@@ -382,7 +371,7 @@ export default function HomePage() {
                         <div className="flex gap-3">
                             <MdInfo className="text-primary text-xl" />
                             <p className="text-sm text-[#111418] dark:text-gray-200 leading-relaxed">
-                                Pastikan data bulan dan nominal sesuai dengan kwitansi atau bukti transfer Anda sebelum menekan tombol Kirim.
+                                Pastikan data nominal sesuai dengan kwitansi atau bukti transfer Anda sebelum menekan tombol Kirim.
                             </p>
                         </div>
                     </div>
@@ -453,20 +442,13 @@ export default function HomePage() {
                     </div>
 
                     {/* Pilih Periode Iuran */}
-                    <h3 className="text-[#111418] dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] pb-2 pt-4">Pilih Periode Iuran</h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Geser untuk memilih bulan dan tahun pembayaran.</p>
+                    <h3 className="hidden text-[#111418] dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] pb-2 pt-4">Pilih Tahun THR</h3>
+                    <p className="hidden text-sm text-gray-500 dark:text-gray-400 mb-4">Geser untuk memilih tahun pembayaran.</p>
 
-                    <div className="flex px-0 py-1 mb-6 relative">
+                    <div className="hidden px-0 py-1 mb-6 relative">
                         {/* Gradient Overlay for visual dept - optional but nice */}
                         <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-white via-transparent to-white dark:from-background-dark dark:to-background-dark z-10 opacity-60"></div>
 
-                        <div className="group flex-1 z-0">
-                            <Picker
-                                items={MONTHS}
-                                selected={selectedMonth}
-                                onSelect={setSelectedMonth}
-                            />
-                        </div>
                         <div className="group flex-1 ml-2 z-0">
                             <Picker
                                 items={YEARS}
@@ -479,17 +461,16 @@ export default function HomePage() {
                     {/* Jumlah Pembayaran */}
                     <div className="flex flex-col gap-4 py-3 mb-4">
                         <label className="flex flex-col w-full">
-                            <p className="text-[#111418] dark:text-white text-base font-semibold leading-normal pb-2">Jumlah Pembayaran (Rp)</p>
+                            <p className="text-[#111418] dark:text-white text-base font-semibold leading-normal pb-2">Jumlah Pembayaran THR (Rp)</p>
                             <div className="relative">
-                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 font-medium">Rp</span>
-                                <input
-                                    className="form-input flex w-full rounded-xl text-[#111418] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 h-14 placeholder:text-[#617589] pl-12 pr-4 text-lg font-bold leading-normal"
-                                    placeholder="50.000"
-                                    type="text"
-                                    inputMode="numeric"
+                                <select
                                     value={amount}
-                                    onChange={handleAmountChange}
-                                />
+                                    onChange={(e) => setAmount(e.target.value)}
+                                    className="w-full h-14 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-[#111418] dark:text-white text-lg font-bold leading-normal focus:outline-none focus:ring-2 focus:ring-primary appearance-none cursor-pointer"
+                                >
+                                    <option value="150000">Rp 150.000</option>
+                                    <option value="172000">Rp 172.000</option>
+                                </select>
                             </div>
                             {validationErrors.amount && (
                                 <p className="text-red-500 text-sm mt-1">{validationErrors.amount}</p>
@@ -607,11 +588,11 @@ export default function HomePage() {
                             </div>
                             <div className="flex justify-between items-center py-3 border-b border-gray-100 dark:border-gray-800">
                                 <span className="text-gray-500 dark:text-gray-400">Periode</span>
-                                <span className="font-semibold text-[#111418] dark:text-white">{selectedMonth} {selectedYear}</span>
+                                <span className="font-semibold text-[#111418] dark:text-white">{selectedYear}</span>
                             </div>
                             <div className="flex justify-between items-center py-3 border-b border-gray-100 dark:border-gray-800">
-                                <span className="text-gray-500 dark:text-gray-400">Jumlah Pembayaran</span>
-                                <span className="font-bold text-lg text-primary">Rp {amount}</span>
+                                <span className="text-gray-500 dark:text-gray-400">Jumlah Pembayaran THR</span>
+                                <span className="font-bold text-lg text-primary">Rp {new Intl.NumberFormat('id-ID').format(parseInt(amount))}</span>
                             </div>
                         </div>
 
