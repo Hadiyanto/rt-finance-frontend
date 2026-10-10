@@ -37,7 +37,7 @@ export default function BottomNav() {
     };
 
     const baseNavItems = [
-        { name: 'Submit Iuran', path: '/', icon: MdReceipt },
+        { name: 'Setor Iuran', path: '/', icon: MdReceipt },
         { name: 'Iuran Bulanan', path: '/report-iuran', icon: MdBarChart },
         { name: 'Keuangan', path: '/pengeluaran', icon: MdBarChart },
     ];
