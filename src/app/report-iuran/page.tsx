@@ -4,6 +4,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import React, { useState, useEffect, useMemo } from 'react';
 import BottomNav from '@/components/BottomNav';
+import { api } from '@/lib/api';
 import {
     MdDescription,
     MdPictureAsPdf,
@@ -52,14 +53,10 @@ export default function ReportIuranPage() {
             setIsLoading(true);
             try {
                 const monthStr = String(selectedMonth + 1).padStart(2, '0');
-                const response = await fetch(
-                    `${process.env.NEXT_PUBLIC_API_URL}/api/monthly-fee/breakdown/${selectedYear}/${monthStr}`
+                const data = await api<{ data: BreakdownData[] }>(
+                    `/api/public/reports/fee-breakdown?period=${selectedYear}-${monthStr}`
                 );
-
-                if (response.ok) {
-                    const data = await response.json();
-                    setBreakdown(data.data || []);
-                }
+                setBreakdown(data.data);
             } catch (error) {
                 console.error('Failed to fetch breakdown:', error);
             } finally {

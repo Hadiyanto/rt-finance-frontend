@@ -3,27 +3,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import BottomNav from '@/components/BottomNav';
+import { api, ApiError, errorMessage, uploadProof, type PublicHouse } from '@/lib/api';
 import { MdInfo, MdEdit, MdCheck, MdDelete, MdAddAPhoto, MdSend, MdClose, MdCheckCircle, MdError } from 'react-icons/md';
-
-const MONTHS = [
-    "Januari", "Februari", "Maret", "April", "Mei", "Juni",
-    "Juli", "Agustus", "September", "Oktober", "November", "Desember"
-];
 
 // Generate years: Current year - 1 to Current year + 5
 const currentYear = new Date().getFullYear();
 const YEARS = Array.from({ length: 7 }, (_, i) => currentYear - 1 + i);
-
-// Types for block/house data
-interface BlockData {
-    block: string;
-    houses: string[];
-}
-
-interface BlockHousesResponse {
-    totalBlocks: number;
-    data: BlockData[];
-}
 
 interface PickerProps {
     items: string[] | number[];
@@ -100,7 +85,6 @@ const Picker = ({ items, selected, onSelect }: PickerProps) => {
 
 export default function ThrPage() {
     const router = useRouter();
-    const [selectedMonth, setSelectedMonth] = useState(MONTHS[new Date().getMonth()]);
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
     const [amount, setAmount] = useState("172000");
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -108,7 +92,7 @@ export default function ThrPage() {
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Block/House selection state
-    const [blocksData, setBlocksData] = useState<BlockData[]>([]);
+    const [houses, setHouses] = useState<PublicHouse[]>([]);
     const [selectedAddress, setSelectedAddress] = useState<string>("");
     const [residentName, setResidentName] = useState<string>("");
     const [originalResidentName, setOriginalResidentName] = useState<string>("");
@@ -122,43 +106,19 @@ export default function ThrPage() {
     const [clickCount, setClickCount] = useState(0);
     const clickTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-    // Fetch blocks data on mount
+    // Daftar rumah + nama penghuni dari API v2
     useEffect(() => {
-        const fetchBlocks = async () => {
-            try {
-                const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/block-houses`);
-                if (response.ok) {
-                    const data: BlockHousesResponse = await response.json();
-                    setBlocksData(data.data);
-                    // Set first address as default and fetch resident name
-                    if (data.data.length > 0 && data.data[0].houses.length > 0) {
-                        const block = data.data[0].block;
-                        const house = data.data[0].houses[0];
-                        setSelectedAddress(`${block}/${house}`);
-
-                        // Fetch resident name for default address
-                        try {
-                            const resResponse = await fetch(
-                                `${process.env.NEXT_PUBLIC_API_URL}/api/residents/${block}/${house}`
-                            );
-                            if (resResponse.ok) {
-                                const resData = await resResponse.json();
-                                const name = resData.fullName || "";
-                                setResidentName(name);
-                                setOriginalResidentName(name);
-                            }
-                        } catch {
-                            // Ignore error for initial resident fetch
-                        }
-                    }
+        api<{ data: PublicHouse[] }>('/api/public/houses')
+            .then(({ data }) => {
+                setHouses(data);
+                if (data.length > 0) {
+                    setSelectedAddress(data[0].label);
+                    setResidentName(data[0].residentName ?? "");
+                    setOriginalResidentName(data[0].residentName ?? "");
                 }
-            } catch (error) {
-                console.error("Failed to fetch blocks:", error);
-            } finally {
-                setIsLoadingBlocks(false);
-            }
-        };
-        fetchBlocks();
+            })
+            .catch((error) => console.error("Failed to fetch houses:", error))
+            .finally(() => setIsLoadingBlocks(false));
     }, []);
 
     // Auto-dismiss toast after 4 seconds
@@ -171,38 +131,16 @@ export default function ThrPage() {
         }
     }, [toast]);
 
-    // Generate flat list of all addresses
-    const allAddresses = blocksData.flatMap(b =>
-        b.houses.map(h => `${b.block}/${h}`)
-    );
+    const allAddresses = houses.map((h) => h.label);
 
-    const handleAddressChange = async (address: string) => {
+    const handleAddressChange = (address: string) => {
+        const name = houses.find((h) => h.label === address)?.residentName ?? "";
         setSelectedAddress(address);
-        setResidentName(""); // Reset name while loading
-        setOriginalResidentName("");
+        setResidentName(name);
+        setOriginalResidentName(name);
         setIsEditingName(false);
         localStorage.removeItem("edit_name");
-
-        // Fetch resident name from API
-        const [block, house] = address.split("/");
-        if (block && house) {
-            try {
-                const response = await fetch(
-                    `${process.env.NEXT_PUBLIC_API_URL}/api/residents/${block}/${house}`
-                );
-                if (response.ok) {
-                    const data = await response.json();
-                    const name = data.fullName || "";
-                    setResidentName(name);
-                    setOriginalResidentName(name);
-                }
-            } catch (error) {
-                console.error("Failed to fetch resident:", error);
-            }
-        }
     };
-
-
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -257,58 +195,20 @@ export default function ThrPage() {
         setIsSubmitting(true);
 
         try {
-            let imageUrl = "";
+            const proofUrl = selectedFile ? await uploadProof(selectedFile) : undefined;
+            const house = houses.find((h) => h.label === selectedAddress);
+            if (!house) throw new ApiError(422, "UNKNOWN_HOUSE", "Pilih rumah terlebih dahulu");
 
-            // Step 1: Upload image if selected
-            if (selectedFile) {
-                const formData = new FormData();
-                formData.append("image", selectedFile);
-
-                const uploadResponse = await fetch(
-                    `${process.env.NEXT_PUBLIC_API_URL}/api/upload-image`,
-                    {
-                        method: "POST",
-                        body: formData,
-                    }
-                );
-
-                if (!uploadResponse.ok) {
-                    throw new Error("Failed to upload image");
-                }
-
-                const uploadData = await uploadResponse.json();
-                imageUrl = uploadData.imageUrl;
-            }
-
-            // Step 2: Submit payment data
-            const [block, houseNumber] = selectedAddress.split("/");
-
-            // Format date as YYYY-MM
-            const monthIndex = MONTHS.indexOf(selectedMonth as string) + 1;
-            const dateStr = `${selectedYear}-${monthIndex.toString().padStart(2, "0")}`;
-
-            const paymentResponse = await fetch(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/thr-manual`,
-                {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        block,
-                        houseNumber,
-                        date: dateStr,
-                        name: residentName,
-                        imageUrl,
-                        amount
-                    }),
-                }
-            );
-
-            if (!paymentResponse.ok) {
-                const errorData = await paymentResponse.json().catch(() => null);
-                throw errorData || new Error("Failed to submit payment");
-            }
+            await api('/api/public/thr', {
+                method: 'POST',
+                body: {
+                    payerName: residentName,
+                    houseId: house.id,
+                    year: selectedYear,
+                    amount: parseInt(amount, 10),
+                    proofUrl,
+                },
+            });
 
             setShowSummary(false);
             setToast({ type: 'success', message: 'Laporan berhasil dikirim!' });
@@ -321,13 +221,9 @@ export default function ThrPage() {
                 fileInputRef.current.value = "";
             }
 
-        } catch (error: any) {
+        } catch (error) {
             console.error("Submit error:", error);
-            if (error?.code === 'THR_ALREADY_SUBMITTED') {
-                setToast({ type: 'error', message: 'THR untuk rumah dan tahun ini sudah pernah dilaporkan.' });
-            } else {
-                setToast({ type: 'error', message: error?.message && error.message !== 'Failed to submit payment' ? error.message : 'Gagal mengirim laporan. Silakan coba lagi.' });
-            }
+            setToast({ type: 'error', message: errorMessage(error) });
         } finally {
             setIsSubmitting(false);
         }

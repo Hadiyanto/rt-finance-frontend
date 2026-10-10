@@ -4,60 +4,27 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import BottomNav from '@/components/BottomNav';
 import NotificationSettings from '@/components/NotificationSettings';
-import WhatsAppManager from '@/components/WhatsAppManager';
 import { MdArrowBack, MdPerson, MdHome, MdPhone, MdEdit, MdLogout, MdCheckCircle, MdWarning } from 'react-icons/md';
-
-interface User {
-    id: number;
-    name: string;
-    role: string;
-}
+import { api, clearSession, getToken, getUser, type User } from '@/lib/api';
 
 export default function ProfilePage() {
     const router = useRouter();
     const [user, setUser] = useState<User | null>(null);
 
     const handleLogout = () => {
-        // Clear both localStorage and sessionStorage
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        sessionStorage.removeItem('token');
-        sessionStorage.removeItem('user');
-
-        // Dispatch event to notify other components
-        window.dispatchEvent(new Event('authChange'));
-
-        // Redirect to home
+        clearSession();
         router.push('/');
     };
 
     useEffect(() => {
-        const checkAuth = async () => {
-            const userStr = localStorage.getItem('user') || sessionStorage.getItem('user');
-            const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-
-            if (userStr && token) {
-                try {
-                    const userData = JSON.parse(userStr);
-                    setUser(userData);
-
-                    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/check`, {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    });
-
-                    if (response.status === 401) {
-                        handleLogout();
-                    }
-                } catch (error) {
-                    console.error('Auth check failed:', error);
-                    handleLogout();
-                }
-            } else {
-                router.push('/');
-            }
-        };
-
-        checkAuth();
+        if (!getToken()) {
+            router.push('/login');
+            return;
+        }
+        // validasi token ke server; 401 otomatis menghapus sesi & ke halaman login
+        api<{ user: User }>('/api/auth/me', { auth: true })
+            .then(({ user }) => setUser(user))
+            .catch(() => setUser(getUser()));
     }, [router]);
 
     if (!user) {
@@ -171,13 +138,6 @@ export default function ProfilePage() {
             <div className="p-4">
                 <NotificationSettings />
             </div>
-
-            {/* WhatsApp Manager - Admin Only */}
-            {user && (user.role === 'admin' || user.role === 'bendahara') && (
-                <div className="p-4">
-                    <WhatsAppManager />
-                </div>
-            )}
 
             {/* Action Buttons */}
             <div className="p-4 flex flex-col gap-3 mt-6">

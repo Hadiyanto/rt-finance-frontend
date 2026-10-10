@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import BottomNav from '@/components/BottomNav';
+import { api, errorMessage, getToken, uploadProof } from '@/lib/api';
 import { MdAdd, MdReceipt, MdArrowUpward, MdArrowDownward, MdTrendingUp, MdTrendingDown, MdWallet, MdClose } from 'react-icons/md';
 
 interface FinanceType {
@@ -33,15 +34,62 @@ interface FinanceItem {
     updatedAt: string;
 }
 
-interface FinanceResponse {
-    total: number;
-    data: FinanceItem[];
+// --- data kas v2 → bentuk yang dipakai halaman ini (income = typeId 1, expense = typeId 2) ---
+
+interface LedgerCategory {
+    id: number;
+    name: string;
+    direction: 'IN' | 'OUT';
 }
 
-interface CategoryResponse {
-    total: number;
-    data: FinanceCategory[];
+interface LedgerEntry {
+    id: number;
+    entryDate: string;
+    direction: 'IN' | 'OUT';
+    amount: number;
+    category: { id: number; name: string };
+    description: string | null;
+    proofUrl: string | null;
+    status: string;
+    approvedAt: string | null;
+    createdAt: string;
 }
+
+interface LedgerResponse {
+    total: number;
+    balance: number;
+    data: LedgerEntry[];
+}
+
+const toFinanceType = (direction: 'IN' | 'OUT'): FinanceType =>
+    direction === 'IN' ? { id: 1, name: 'income' } : { id: 2, name: 'expense' };
+
+const toFinanceCategory = (c: LedgerCategory): FinanceCategory => ({
+    id: c.id,
+    name: c.name,
+    typeId: toFinanceType(c.direction).id,
+    type: toFinanceType(c.direction),
+});
+
+const toFinanceItem = (e: LedgerEntry): FinanceItem => {
+    const type = toFinanceType(e.direction);
+    return {
+        id: e.id,
+        amount: e.amount,
+        description: e.description ?? '',
+        imageUrl: e.proofUrl,
+        date: e.entryDate,
+        categoryId: e.category.id,
+        typeId: type.id,
+        category: { id: e.category.id, name: e.category.name, typeId: type.id },
+        type,
+        status: e.status,
+        approvedBy: null,
+        approvedAt: e.approvedAt,
+        createdAt: e.createdAt,
+        updatedAt: e.createdAt,
+    };
+};
 
 export default function PengeluaranPage() {
     const [financeData, setFinanceData] = useState<FinanceItem[]>([]);
@@ -63,78 +111,35 @@ export default function PengeluaranPage() {
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-    // Check login status
-    useEffect(() => {
-        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-        setIsLoggedIn(!!token);
-    }, []);
-
-    // Fetch categories
-    useEffect(() => {
-        const fetchCategories = async () => {
-            try {
-                const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/categories`);
-                if (response.ok) {
-                    const data: CategoryResponse = await response.json();
-                    setCategories(data.data);
-                }
-            } catch (error) {
-                console.error('Failed to fetch categories:', error);
-            }
-        };
-        fetchCategories();
+    const loadEntries = useCallback(async (loggedIn: boolean) => {
+        try {
+            // admin melihat semua transaksi (termasuk yang belum disetujui), publik hanya yang disetujui
+            const data = loggedIn
+                ? await api<LedgerResponse>('/api/admin/ledger', { auth: true })
+                : await api<LedgerResponse>('/api/public/ledger');
+            setFinanceData(data.data.map(toFinanceItem));
+        } catch (error) {
+            console.error('Failed to fetch finance data:', error);
+        } finally {
+            setIsLoading(false);
+        }
     }, []);
 
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/finance`);
-                if (response.ok) {
-                    const data: FinanceResponse = await response.json();
-                    // Sort by date descending (newest first)
-                    const sortedData = data.data.sort((a, b) =>
-                        new Date(b.date).getTime() - new Date(a.date).getTime()
-                    );
-                    setFinanceData(sortedData);
-                }
-            } catch (error) {
-                console.error("Failed to fetch finance data:", error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        fetchData();
-    }, []);
+        const loggedIn = !!getToken();
+        setIsLoggedIn(loggedIn);
+        loadEntries(loggedIn);
+        api<{ data: LedgerCategory[] }>('/api/public/ledger/categories')
+            .then(({ data }) => setCategories(data.map(toFinanceCategory)))
+            .catch((error) => console.error('Failed to fetch categories:', error));
+    }, [loadEntries]);
 
     const handleApprove = async (id: number, newStatus: 'APPROVED' | 'REJECTED') => {
         try {
-            const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/finance/${id}/status`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`,
-                },
-                body: JSON.stringify({ status: newStatus }),
-            });
-
-            if (response.ok) {
-                // Refresh data
-                const refreshResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/finance`);
-                if (refreshResponse.ok) {
-                    const data: FinanceResponse = await refreshResponse.json();
-                    const sortedData = data.data.sort((a, b) =>
-                        new Date(b.date).getTime() - new Date(a.date).getTime()
-                    );
-                    setFinanceData(sortedData);
-                }
-            } else {
-                alert('Gagal mengupdate status transaksi');
-            }
+            await api(`/api/admin/ledger/${id}/${newStatus === 'APPROVED' ? 'approve' : 'reject'}`, { method: 'POST', auth: true });
+            loadEntries(true);
         } catch (error) {
-            console.error('Approve error:', error);
-            alert('Gagal mengupdate status transaksi');
+            alert(`Gagal mengupdate status transaksi: ${errorMessage(error)}`);
         }
     };
 
@@ -156,55 +161,19 @@ export default function PengeluaranPage() {
         setIsSubmitting(true);
 
         try {
-            const typeId = transactionType === 'income' ? 1 : 2;
-            const numAmount = parseFloat(amount.replace(/\D/g, ''));
-
-            // Get token from storage
-            const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-
-            let imageUrl = '';
-
-            // Step 1: Upload image if selected
-            if (selectedFile) {
-                const formData = new FormData();
-                formData.append('image', selectedFile);
-
-                const uploadResponse = await fetch(
-                    `${process.env.NEXT_PUBLIC_API_URL}/api/upload-image`,
-                    {
-                        method: 'POST',
-                        body: formData,
-                    }
-                );
-
-                if (!uploadResponse.ok) {
-                    throw new Error('Failed to upload image');
-                }
-
-                const uploadData = await uploadResponse.json();
-                imageUrl = uploadData.imageUrl;
-            }
-
-            // Step 2: Submit finance data
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/finance`, {
+            const proofUrl = selectedFile ? await uploadProof(selectedFile) : undefined;
+            await api('/api/admin/ledger', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`,
-                },
-                body: JSON.stringify({
-                    amount: numAmount,
-                    description,
+                auth: true,
+                body: {
+                    entryDate: date,
+                    direction: transactionType === 'income' ? 'IN' : 'OUT',
+                    amount: parseInt(amount.replace(/\D/g, ''), 10),
                     categoryId: selectedCategoryId,
-                    typeId,
-                    date,
-                    imageUrl,
-                }),
+                    description,
+                    proofUrl,
+                },
             });
-
-            if (!response.ok) {
-                throw new Error('Failed to create transaction');
-            }
 
             // Reset form
             setAmount('');
@@ -218,18 +187,10 @@ export default function PengeluaranPage() {
             }
             setShowModal(false);
 
-            // Refresh data
-            const refreshResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/finance`);
-            if (refreshResponse.ok) {
-                const data: FinanceResponse = await refreshResponse.json();
-                const sortedData = data.data.sort((a, b) =>
-                    new Date(b.date).getTime() - new Date(a.date).getTime()
-                );
-                setFinanceData(sortedData);
-            }
+            loadEntries(true);
         } catch (error) {
             console.error('Submit error:', error);
-            alert('Gagal menyimpan transaksi');
+            alert(`Gagal menyimpan transaksi: ${errorMessage(error)}`);
         } finally {
             setIsSubmitting(false);
         }

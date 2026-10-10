@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { MdArrowBack, MdVisibilityOff, MdVisibility, MdError } from 'react-icons/md';
+import { api, errorMessage, saveSession, type User } from '@/lib/api';
 
 export default function LoginPage() {
     const router = useRouter();
@@ -19,35 +20,14 @@ export default function LoginPage() {
         setIsLoading(true);
 
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/login`, {
+            const data = await api<{ token: string; user: User }>('/api/auth/login', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    email,
-                    password,
-                }),
+                body: { email, password },
             });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.message || 'Login gagal');
-            }
-
-            // Save to localStorage or sessionStorage based on "Ingat Saya"
-            const storage = rememberMe ? localStorage : sessionStorage;
-            storage.setItem('token', data.token);
-            storage.setItem('user', JSON.stringify(data.user));
-
-            // Dispatch event to notify other components
-            window.dispatchEvent(new Event('authChange'));
-
-            // Redirect to home
-            router.push('/');
+            saveSession(data.token, data.user, rememberMe);
+            router.push('/profile');
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Terjadi kesalahan. Silakan coba lagi.');
+            setError(errorMessage(err));
         } finally {
             setIsLoading(false);
         }

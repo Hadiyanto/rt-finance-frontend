@@ -4,6 +4,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import React, { useState, useEffect, useMemo } from 'react';
 import BottomNav from '@/components/BottomNav';
+import { api } from '@/lib/api';
 import {
     MdPictureAsPdf,
     MdChevronLeft,
@@ -29,14 +30,8 @@ export default function RekapThrPage() {
         const fetchData = async () => {
             setIsLoading(true);
             try {
-                const response = await fetch(
-                    `${process.env.NEXT_PUBLIC_API_URL}/api/thr/rekap/${selectedYear}`
-                );
-
-                if (response.ok) {
-                    const data = await response.json();
-                    setRecap(data.data || []);
-                }
+                const data = await api<{ data: RecapData[] }>(`/api/public/thr/recap?year=${selectedYear}`);
+                setRecap(data.data);
             } catch (error) {
                 console.error('Failed to fetch THR recap:', error);
             } finally {
@@ -67,9 +62,9 @@ export default function RekapThrPage() {
     };
 
     const renderStatus = (hasPaid: boolean, status: string | null) => {
-        if (hasPaid && status === 'COMPLETED') {
+        if (hasPaid) {
             return <span className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-100 rounded-full dark:bg-emerald-900/30 dark:text-emerald-400">Lunas</span>;
-        } else if (status === 'PENDING') {
+        } else if (status !== null) {
             return <span className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-700 bg-amber-100 rounded-full dark:bg-amber-900/30 dark:text-amber-400">Pending</span>;
         } else {
             return <span className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-slate-100 rounded-full dark:bg-slate-800 dark:text-slate-400">Belum</span>;
@@ -85,7 +80,7 @@ export default function RekapThrPage() {
     }, [recap]);
 
     // Count paid residents
-    const paidCount = recap.filter((r) => r.hasPaid && r.status === 'COMPLETED').length;
+    const paidCount = recap.filter((r) => r.hasPaid).length;
     const totalCount = recap.length;
 
     const downloadPDF = () => {
@@ -109,9 +104,9 @@ export default function RekapThrPage() {
         // ======================
         recap.forEach((item) => {
             let statusText = "Belum";
-            if (item.hasPaid && item.status === 'COMPLETED') {
+            if (item.hasPaid) {
                 statusText = "Lunas";
-            } else if (item.status === 'PENDING') {
+            } else if (item.status !== null) {
                 statusText = "Pending";
             }
 
