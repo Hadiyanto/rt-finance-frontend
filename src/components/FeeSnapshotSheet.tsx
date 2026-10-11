@@ -11,6 +11,7 @@ interface SnapshotItem {
     collected: number;
     recorded: number;
     toAdd: number;
+    payout: boolean; // langsung disetor ke RW/yayasan (pemasukan + pengeluaran setoran)
 }
 
 interface SnapshotPreview {
@@ -21,8 +22,11 @@ interface SnapshotPreview {
     collectedTotal: number;
     recordedTotal: number;
     toAddTotal: number;
+    payoutToAddTotal: number;
+    keptToAddTotal: number;
     legacyEntries: { id: number; entryDate: string; amount: number; description: string }[];
     created?: number[];
+    payouts?: number[];
     voided?: number[];
 }
 
@@ -70,7 +74,7 @@ export default function FeeSnapshotSheet({ onClose, onDone }: Props) {
             const saved = await api<SnapshotPreview>('/api/admin/ledger/fee-snapshot', { method: 'POST', auth: true, body: { period } });
             setPreview({ period, data: saved });
             setResult(
-                `${saved.created?.length ?? 0} pemasukan dicatat` +
+                `${saved.created?.length ?? 0} pemasukan dan ${saved.payouts?.length ?? 0} setoran dicatat` +
                     (saved.voided?.length ? `, ${saved.voided.length} entri lama diganti` : '') +
                     '.'
             );
@@ -94,7 +98,8 @@ export default function FeeSnapshotSheet({ onClose, onDone }: Props) {
                     </button>
                 </div>
                 <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
-                    Iuran yang sudah disetujui dicatat sebagai pemasukan, dipisah per pos seperti rekap di Laporan Iuran.
+                    Iuran yang sudah disetujui dicatat sebagai pemasukan per pos seperti rekap di Laporan Iuran. Pos untuk RW &amp; yayasan
+                    sampah otomatis dicatat juga sebagai pengeluaran setoran, jadi hanya Kas + Agama RT yang menambah saldo.
                 </p>
 
                 <div className="flex items-center justify-between rounded-xl border border-slate-200 dark:border-slate-700 px-1 py-1 mb-4">
@@ -130,7 +135,10 @@ export default function FeeSnapshotSheet({ onClose, onDone }: Props) {
                                 <div key={item.code} className="grid grid-cols-[1fr_auto_auto] gap-x-3 px-3 py-2.5 border-t border-slate-100 dark:border-slate-800 text-sm items-center">
                                     <span>
                                         <span className="font-medium block leading-snug">{item.name.replace(/^Iuran: /, '')}</span>
-                                        <span className="text-xs text-slate-500">Terkumpul {formatRupiah(item.collected)}</span>
+                                        <span className="text-xs text-slate-500">
+                                            Terkumpul {formatRupiah(item.collected)}
+                                            {item.payout ? ' · disetor' : ' · kas RT'}
+                                        </span>
                                     </span>
                                     <span className="text-right text-slate-500">{formatRupiah(item.recorded)}</span>
                                     <span className={`text-right font-semibold ${item.toAdd > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`}>
@@ -144,6 +152,23 @@ export default function FeeSnapshotSheet({ onClose, onDone }: Props) {
                                 <span className="text-right text-emerald-600 dark:text-emerald-400">+{formatRupiah(data.toAddTotal)}</span>
                             </div>
                         </div>
+
+                        {data.toAddTotal > 0 && (
+                            <dl className="rounded-xl bg-slate-50 dark:bg-slate-800 p-3 mb-3 text-sm space-y-1">
+                                <div className="flex justify-between">
+                                    <dt className="text-slate-500 dark:text-slate-400">Pemasukan dicatat</dt>
+                                    <dd className="font-semibold">{formatRupiah(data.toAddTotal)}</dd>
+                                </div>
+                                <div className="flex justify-between">
+                                    <dt className="text-slate-500 dark:text-slate-400">Setoran ke RW &amp; yayasan (pengeluaran)</dt>
+                                    <dd className="font-semibold text-rose-600 dark:text-rose-400">−{formatRupiah(data.payoutToAddTotal)}</dd>
+                                </div>
+                                <div className="flex justify-between border-t border-slate-200 dark:border-slate-700 pt-1">
+                                    <dt className="font-semibold">Saldo kas RT bertambah</dt>
+                                    <dd className="font-bold text-emerald-600 dark:text-emerald-400">+{formatRupiah(data.keptToAddTotal)}</dd>
+                                </div>
+                            </dl>
+                        )}
 
                         {data.legacyEntries.length > 0 && (
                             <p className="flex items-start gap-2 p-3 mb-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 text-sm text-amber-800 dark:text-amber-300">
