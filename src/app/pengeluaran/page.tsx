@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import BottomNav from '@/components/BottomNav';
 import FeeSnapshotSheet from '@/components/FeeSnapshotSheet';
 import { api, errorMessage, getToken, uploadProof } from '@/lib/api';
-import { MdAdd, MdReceipt, MdArrowUpward, MdArrowDownward, MdTrendingUp, MdTrendingDown, MdWallet, MdClose, MdDownload } from 'react-icons/md';
+import { MdAdd, MdReceipt, MdArrowUpward, MdArrowDownward, MdTrendingUp, MdTrendingDown, MdWallet, MdClose, MdDownload, MdExpandMore } from 'react-icons/md';
 
 interface FinanceType {
     id: number;
@@ -57,6 +57,14 @@ interface LedgerEntry {
     createdAt: string;
 }
 
+interface HeldFees {
+    lastSnapshotLabel: string | null;
+    total: number;
+    kept: number; // bagian Kas + Agama RT
+    payout: number; // untuk disetor ke RW / yayasan
+    months: { period: string; label: string; afterLastSnapshot: boolean; paidHouses: number; total: number }[];
+}
+
 interface LedgerResponse {
     total: number;
     balance: number;
@@ -99,6 +107,8 @@ export default function PengeluaranPage() {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [showModal, setShowModal] = useState(false);
     const [showSnapshot, setShowSnapshot] = useState(false);
+    const [held, setHeld] = useState<HeldFees | null>(null);
+    const [showHeld, setShowHeld] = useState(false);
     const [categories, setCategories] = useState<FinanceCategory[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -121,6 +131,7 @@ export default function PengeluaranPage() {
                 ? await api<LedgerResponse>('/api/admin/ledger', { auth: true })
                 : await api<LedgerResponse>('/api/public/ledger');
             setFinanceData(data.data.map(toFinanceItem));
+            setHeld(await api<HeldFees>('/api/public/ledger/held-fees'));
         } catch (error) {
             console.error('Failed to fetch finance data:', error);
         } finally {
@@ -318,6 +329,63 @@ export default function PengeluaranPage() {
                         </div>
                     </div>
                 </div>
+
+                {/* Iuran mengendap: sudah dibayar warga, belum dicatat ke kas */}
+                {held && held.total > 0 && (
+                    <section className="rounded-2xl bg-white dark:bg-slate-800 border border-amber-200 dark:border-amber-900/50 p-4">
+                        <button
+                            onClick={() => setShowHeld((v) => !v)}
+                            className="w-full flex items-start justify-between gap-3 text-left"
+                            aria-expanded={showHeld}
+                        >
+                            <div>
+                                <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">Iuran mengendap</p>
+                                <p className="text-2xl font-bold mt-0.5">Rp {formatCurrency(held.total)}</p>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                                    Sudah dibayar warga, belum dicatat ke kas
+                                    {held.lastSnapshotLabel ? ` (iuran terakhir dicatat: ${held.lastSnapshotLabel})` : ''}
+                                </p>
+                            </div>
+                            <MdExpandMore className={`text-2xl text-slate-400 shrink-0 transition-transform ${showHeld ? 'rotate-180' : ''}`} />
+                        </button>
+
+                        {showHeld && (
+                            <div className="mt-3 space-y-3">
+                                <ul className="divide-y divide-slate-100 dark:divide-slate-700 text-sm">
+                                    {held.months.map((m) => (
+                                        <li key={m.period} className="flex justify-between py-2">
+                                            <span>
+                                                {m.label}
+                                                <span className="text-xs text-slate-500">
+                                                    {m.afterLastSnapshot ? ` · ${m.paidHouses} rumah` : ' · susulan belum dicatat'}
+                                                </span>
+                                            </span>
+                                            <span className="font-semibold">Rp {formatCurrency(m.total)}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                                <dl className="rounded-xl bg-slate-50 dark:bg-slate-900/60 p-3 text-sm space-y-1">
+                                    <div className="flex justify-between">
+                                        <dt className="text-slate-500 dark:text-slate-400">Bagian kas RT (Kas + Agama RT)</dt>
+                                        <dd className="font-semibold">Rp {formatCurrency(held.kept)}</dd>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <dt className="text-slate-500 dark:text-slate-400">Untuk disetor ke RW &amp; yayasan</dt>
+                                        <dd className="font-semibold">Rp {formatCurrency(held.payout)}</dd>
+                                    </div>
+                                    <div className="flex justify-between border-t border-slate-200 dark:border-slate-700 pt-1">
+                                        <dt className="font-semibold">Saldo kas + iuran mengendap</dt>
+                                        <dd className="font-bold">Rp {formatCurrency(balance + held.total)}</dd>
+                                    </div>
+                                </dl>
+                                <p className="text-xs text-slate-500 dark:text-slate-400">
+                                    Masuk ke kas saat bulannya dicatat lewat tombol Iuran. Angka &quot;saldo + mengendap&quot; bisa dipakai untuk
+                                    mencocokkan dengan saldo rekening (selama setorannya belum ditransfer).
+                                </p>
+                            </div>
+                        )}
+                    </section>
+                )}
 
                 {/* Transactions Table */}
                 <section>
