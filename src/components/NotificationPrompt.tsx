@@ -9,19 +9,18 @@ export default function NotificationPrompt() {
     const [permission, setPermission] = useState<NotificationPermission>('default');
 
     useEffect(() => {
-        // Check current permission status
-        const currentPermission = NotificationService.getPermission();
-        setPermission(currentPermission);
+        // Wait a bit before checking & showing the prompt (don't annoy user immediately)
+        const timer = setTimeout(() => {
+            const currentPermission = NotificationService.getPermission();
+            setPermission(currentPermission);
 
-        // Show prompt if permission is default (not asked yet)
-        if (currentPermission === 'default' && NotificationService.isSupported()) {
-            // Wait a bit before showing prompt (don't annoy user immediately)
-            const timer = setTimeout(() => {
+            // Show prompt if permission is default (not asked yet)
+            if (currentPermission === 'default' && NotificationService.isSupported()) {
                 setShow(true);
-            }, 3000);
+            }
+        }, 3000);
 
-            return () => clearTimeout(timer);
-        }
+        return () => clearTimeout(timer);
     }, []);
 
     const handleEnable = async () => {

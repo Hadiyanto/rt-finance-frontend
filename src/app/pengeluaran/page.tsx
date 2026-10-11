@@ -625,6 +625,7 @@ export default function PengeluaranPage() {
 
                                 {previewUrl ? (
                                     <div className="relative w-full rounded-xl overflow-hidden border-2 border-primary/30">
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
                                         <img
                                             src={previewUrl}
                                             alt="Preview"
