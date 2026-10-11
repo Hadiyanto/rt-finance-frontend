@@ -41,6 +41,7 @@ const CURRENT_INDEX = now.getFullYear() * 12 + now.getMonth();
 
 // Ambil iuran bulan terpilih (laporan yang sudah disetujui) lalu catat sebagai pemasukan kas per pos rekap.
 export default function FeeSnapshotSheet({ onClose, onDone }: Props) {
+    const [mode, setMode] = useState<'monthly' | 'thr'>('monthly');
     const [monthIndex, setMonthIndex] = useState(CURRENT_INDEX - 1); // default bulan lalu
     const period = toPeriod(monthIndex);
     const [preview, setPreview] = useState<{ period: string; data: SnapshotPreview } | null>(null);
@@ -92,11 +93,29 @@ export default function FeeSnapshotSheet({ onClose, onDone }: Props) {
             <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-white dark:bg-slate-900 rounded-t-3xl p-5 pb-8 max-h-[90vh] overflow-y-auto animate-slide-up">
                 <div className="w-12 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto mb-3" />
                 <div className="flex items-center justify-between mb-1">
-                    <h3 className="text-lg font-bold">Catat iuran ke kas</h3>
+                    <h3 className="text-lg font-bold">Catat ke kas</h3>
                     <button onClick={onClose} disabled={isSaving} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Tutup">
                         <MdClose className="text-2xl text-slate-500" />
                     </button>
                 </div>
+                <div className="grid grid-cols-2 gap-1 p-1 mb-3 rounded-xl bg-slate-100 dark:bg-slate-800">
+                    {(['monthly', 'thr'] as const).map((m) => (
+                        <button
+                            key={m}
+                            onClick={() => setMode(m)}
+                            disabled={isSaving}
+                            aria-pressed={mode === m}
+                            className={`h-9 rounded-lg text-sm font-semibold ${mode === m ? 'bg-white dark:bg-slate-700 shadow-sm' : 'text-slate-500'}`}
+                        >
+                            {m === 'monthly' ? 'Iuran bulanan' : 'THR'}
+                        </button>
+                    ))}
+                </div>
+
+                {mode === 'thr' ? (
+                    <ThrPanel onDone={onDone} />
+                ) : (
+                <>
                 <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
                     Iuran yang sudah disetujui dicatat sebagai pemasukan per pos seperti rekap di Laporan Iuran. Pos untuk RW &amp; yayasan
                     sampah otomatis dicatat juga sebagai pengeluaran setoran, jadi hanya Kas + Agama RT yang menambah saldo.
@@ -205,7 +224,150 @@ export default function FeeSnapshotSheet({ onClose, onDone }: Props) {
                         </button>
                     </>
                 )}
+                </>
+                )}
             </div>
         </div>
+    );
+}
+
+interface ThrPreview {
+    year: number;
+    houses: number;
+    collected: number;
+    recorded: number;
+    toAdd: number;
+    created?: number[];
+}
+
+const today = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
+
+// THR setahun: pemasukan THR + setoran THR ke RW dengan nominal sama (saldo kas RT tetap).
+function ThrPanel({ onDone }: { onDone: () => void }) {
+    const [year, setYear] = useState(now.getFullYear());
+    const [preview, setPreview] = useState<ThrPreview | null>(null);
+    const [entryDate, setEntryDate] = useState(today());
+    const [error, setError] = useState<string | null>(null);
+    const [result, setResult] = useState<string | null>(null);
+    const [isSaving, setIsSaving] = useState(false);
+
+    useEffect(() => {
+        let cancelled = false;
+        api<ThrPreview>(`/api/admin/ledger/thr-snapshot?year=${year}`, { auth: true })
+            .then((data) => !cancelled && setPreview(data))
+            .catch((err) => !cancelled && setError(errorMessage(err)));
+        return () => {
+            cancelled = true;
+        };
+    }, [year]);
+
+    const data = preview?.year === year ? preview : null;
+
+    const changeYear = (delta: number) => {
+        setError(null);
+        setResult(null);
+        setYear((y) => Math.min(y + delta, now.getFullYear()));
+    };
+
+    const save = async () => {
+        setIsSaving(true);
+        setError(null);
+        try {
+            const saved = await api<ThrPreview>('/api/admin/ledger/thr-snapshot', { method: 'POST', auth: true, body: { year, entryDate } });
+            setPreview(saved);
+            setResult('Pemasukan THR dan setoran THR ke RW dicatat.');
+            onDone();
+        } catch (err) {
+            setError(errorMessage(err));
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    return (
+        <>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+                THR yang sudah disetujui dicatat sebagai pemasukan, lalu otomatis sebagai setoran THR ke RW dengan nominal yang sama. Saldo kas RT
+                tidak berubah.
+            </p>
+
+            <div className="flex items-center justify-between rounded-xl border border-slate-200 dark:border-slate-700 px-1 py-1 mb-4">
+                <button onClick={() => changeYear(-1)} disabled={isSaving} className="w-11 h-11 flex items-center justify-center rounded-full" aria-label="Tahun sebelumnya">
+                    <MdChevronLeft className="text-2xl" />
+                </button>
+                <span className="font-bold">THR {year}</span>
+                <button
+                    onClick={() => changeYear(1)}
+                    disabled={isSaving || year >= now.getFullYear()}
+                    className="w-11 h-11 flex items-center justify-center rounded-full disabled:opacity-30"
+                    aria-label="Tahun berikutnya"
+                >
+                    <MdChevronRight className="text-2xl" />
+                </button>
+            </div>
+
+            {!data ? (
+                error ? (
+                    <p className="p-3 rounded-xl bg-red-50 dark:bg-red-900/20 text-sm text-red-700 dark:text-red-300">{error}</p>
+                ) : (
+                    <div className="h-32 rounded-xl bg-slate-100 dark:bg-slate-800 animate-pulse" />
+                )
+            ) : (
+                <>
+                    <dl className="rounded-xl border border-slate-200 dark:border-slate-700 divide-y divide-slate-100 dark:divide-slate-800 mb-3 text-sm">
+                        <div className="flex justify-between px-3 py-2.5">
+                            <dt className="text-slate-500">THR disetujui</dt>
+                            <dd className="font-semibold">
+                                {formatRupiah(data.collected)} · {data.houses} rumah
+                            </dd>
+                        </div>
+                        <div className="flex justify-between px-3 py-2.5">
+                            <dt className="text-slate-500">Sudah di kas</dt>
+                            <dd className="font-semibold">{formatRupiah(data.recorded)}</dd>
+                        </div>
+                        <div className="flex justify-between px-3 py-2.5">
+                            <dt className="font-semibold">Akan dicatat</dt>
+                            <dd className={`font-bold ${data.toAdd > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`}>
+                                {data.toAdd > 0 ? `${formatRupiah(data.toAdd)} masuk & keluar` : '-'}
+                            </dd>
+                        </div>
+                    </dl>
+
+                    {data.toAdd > 0 && (
+                        <label className="block mb-3 text-sm">
+                            <span className="text-slate-500 dark:text-slate-400">Tanggal setor THR ke RW</span>
+                            <input
+                                type="date"
+                                value={entryDate}
+                                onChange={(e) => setEntryDate(e.target.value)}
+                                className="mt-1 w-full h-11 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800"
+                            />
+                        </label>
+                    )}
+
+                    {data.recorded > 0 && data.toAdd > 0 && (
+                        <p className="flex items-start gap-2 p-3 mb-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-sm text-blue-800 dark:text-blue-300">
+                            <MdInfo className="text-lg shrink-0 mt-0.5" />
+                            THR tahun ini sudah pernah dicatat. Yang ditambahkan hanya THR yang disetujui setelahnya (susulan).
+                        </p>
+                    )}
+                    {data.toAdd === 0 && !result && (
+                        <p className="p-3 mb-3 rounded-xl bg-slate-50 dark:bg-slate-800 text-sm text-slate-600 dark:text-slate-300">
+                            {data.collected === 0 ? 'Belum ada THR yang disetujui untuk tahun ini.' : 'Semua THR tahun ini sudah tercatat di kas.'}
+                        </p>
+                    )}
+                    {result && <p className="p-3 mb-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 text-sm text-emerald-800 dark:text-emerald-300">{result}</p>}
+                    {error && <p className="p-3 mb-3 rounded-xl bg-red-50 dark:bg-red-900/20 text-sm text-red-700 dark:text-red-300">{error}</p>}
+
+                    <button
+                        onClick={save}
+                        disabled={data.toAdd <= 0 || isSaving || !entryDate}
+                        className="w-full h-12 rounded-xl bg-primary hover:bg-primary/90 disabled:bg-slate-300 dark:disabled:bg-slate-700 text-white font-semibold"
+                    >
+                        {isSaving ? 'Mencatat...' : data.toAdd > 0 ? `Catat THR ${formatRupiah(data.toAdd)} ke kas` : 'Tidak ada yang perlu dicatat'}
+                    </button>
+                </>
+            )}
+        </>
     );
 }
