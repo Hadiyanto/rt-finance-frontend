@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import BottomNav from '@/components/BottomNav';
+import FeeSnapshotSheet from '@/components/FeeSnapshotSheet';
 import { api, errorMessage, getToken, uploadProof } from '@/lib/api';
-import { MdAdd, MdReceipt, MdArrowUpward, MdArrowDownward, MdTrendingUp, MdTrendingDown, MdWallet, MdClose } from 'react-icons/md';
+import { MdAdd, MdReceipt, MdArrowUpward, MdArrowDownward, MdTrendingUp, MdTrendingDown, MdWallet, MdClose, MdDownload } from 'react-icons/md';
 
 interface FinanceType {
     id: number;
@@ -38,6 +39,7 @@ interface FinanceItem {
 
 interface LedgerCategory {
     id: number;
+    code: string | null; // != null = kategori sistem (diisi lewat "Catat iuran ke kas")
     name: string;
     direction: 'IN' | 'OUT';
 }
@@ -96,6 +98,7 @@ export default function PengeluaranPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [showModal, setShowModal] = useState(false);
+    const [showSnapshot, setShowSnapshot] = useState(false);
     const [categories, setCategories] = useState<FinanceCategory[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -130,7 +133,7 @@ export default function PengeluaranPage() {
         setIsLoggedIn(loggedIn);
         loadEntries(loggedIn);
         api<{ data: LedgerCategory[] }>('/api/public/ledger/categories')
-            .then(({ data }) => setCategories(data.map(toFinanceCategory)))
+            .then(({ data }) => setCategories(data.filter((c) => !c.code).map(toFinanceCategory)))
             .catch((error) => console.error('Failed to fetch categories:', error));
     }, [loadEntries]);
 
@@ -271,12 +274,21 @@ export default function PengeluaranPage() {
                     <p className="text-sm text-slate-500 dark:text-slate-400">Laporan Kas RT</p>
                 </div>
                 {isLoggedIn && (
-                    <button
-                        onClick={() => setShowModal(true)}
-                        className="w-10 h-10 flex items-center justify-center rounded-full bg-primary text-white shadow-lg shadow-primary/30 hover:bg-primary/90 transition-colors"
-                    >
-                        <MdAdd className="text-2xl" />
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setShowSnapshot(true)}
+                            className="h-10 px-3 flex items-center gap-1 rounded-full border border-primary text-primary text-sm font-semibold hover:bg-primary/5 transition-colors"
+                        >
+                            <MdDownload className="text-lg" /> Iuran
+                        </button>
+                        <button
+                            onClick={() => setShowModal(true)}
+                            className="w-10 h-10 flex items-center justify-center rounded-full bg-primary text-white shadow-lg shadow-primary/30 hover:bg-primary/90 transition-colors"
+                            aria-label="Tambah transaksi manual"
+                        >
+                            <MdAdd className="text-2xl" />
+                        </button>
+                    </div>
                 )}
             </header>
 
@@ -331,10 +343,12 @@ export default function PengeluaranPage() {
                                     .filter(item => isLoggedIn || item.status === 'APPROVED')
                                     .map((item) => {
                                         const isIncome = item.type.name === 'income';
+                                        const isVoid = item.status === 'VOID';
                                         const statusColor =
                                             item.status === 'APPROVED' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
                                                 item.status === 'REJECTED' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-                                                    'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400';
+                                                    isVoid ? 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400' :
+                                                        'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400';
 
                                         return (
                                             <div key={item.id} className="grid grid-cols-12 px-4 py-4 items-center hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
@@ -361,14 +375,14 @@ export default function PengeluaranPage() {
                                                         {/* Status Badge (only for logged-in users) */}
                                                         {isLoggedIn && (
                                                             <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full w-fit ${statusColor}`}>
-                                                                {item.status}
+                                                                {isVoid ? 'VOID · diganti pencatatan iuran' : item.status}
                                                             </span>
                                                         )}
                                                     </div>
                                                 </div>
                                                 <div className="col-span-4 text-right">
                                                     <div className="flex flex-col items-end gap-1">
-                                                        <span className={`text-sm font-bold ${isIncome ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                                        <span className={`text-sm font-bold ${isVoid ? 'text-slate-400 line-through' : isIncome ? 'text-emerald-500' : 'text-rose-500'}`}>
                                                             {isIncome ? '+ ' : '- '}
                                                             Rp {formatCurrency(item.amount)}
                                                         </span>
@@ -614,6 +628,7 @@ export default function PengeluaranPage() {
             )}
 
             <BottomNav />
+            {showSnapshot && <FeeSnapshotSheet onClose={() => setShowSnapshot(false)} onDone={() => loadEntries(true)} />}
         </div>
     );
 }
