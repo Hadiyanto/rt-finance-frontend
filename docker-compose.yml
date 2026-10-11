@@ -1,0 +1,19 @@
+# Frontend di VPS:
+#
+#   docker compose up -d --build
+#
+# NEXT_PUBLIC_API_URL diambil dari rt-finance-frontend/.env dan dipakai saat build (bukan saat jalan),
+# jadi setelah mengubahnya jalankan ulang dengan --build.
+
+services:
+  web:
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?tambahkan NEXT_PUBLIC_API_URL di rt-finance-frontend/.env}
+    container_name: rt-finance-frontend
+    ports:
+      # Host port 6000 (RT memakai 6xxx), 127.0.0.1 saja; nginx (repo setupvps: nginx/rt/) melayaninya
+      # sebagai https://gmm-rt001.ruangin.xyz.
+      - "127.0.0.1:${FRONTEND_PORT:-6000}:3000"
+    restart: unless-stopped
